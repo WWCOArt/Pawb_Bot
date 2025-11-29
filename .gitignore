@@ -1,0 +1,9 @@
+secrets.json
+dono_cooldowns.json
+dono_emails.json
+dono_queue.json
+__pycache__/
+.tio.tokens.json
+foxrules.json
+commands_secret.py
+variables.json
