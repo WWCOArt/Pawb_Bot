@@ -5,6 +5,7 @@ class BotData():
 		self.bless_count = 0
 		self.distracted_count = 0
 		self.silly_mode = False
+		self.avatar = "sphinx"
 
 		with open("foxrules.json", encoding="utf8") as foxrules_file:
 			self.foxrules = json.load(foxrules_file)
