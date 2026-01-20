@@ -25,6 +25,10 @@ config_data_json = json.load(config_data)
 VEADOTUBE_PATH = config_data_json["veadotube_path"]
 config_data.close()
 
+avatars_file = open("avatars.json", encoding="utf8")
+AVATARS = json.load(avatars_file)
+avatars_file.close()
+
 LOGGER: logging.Logger = logging.getLogger("Bot")
 
 class Bot(commands.Bot):
@@ -85,14 +89,24 @@ class CommandsChat(commands.Component):
 		if self.bot_data.silly_mode:
 			pass
 
-		if payload.reward.title == "Memory Leak":
+		if payload.reward.title in AVATARS:
+			avatar_info = AVATARS[payload.reward.title]
+			avatar_name = payload.reward.title
+			if avatar_name == "Kat Avatar":
+				self.bot_data.avatar = random.choices(["katMale", "katFemale", "katNanite"], weights=[90, 90, 20], k=1)[0]
+			elif avatar_name == "Gremlin":
+				if self.bot_data.avatar == "dragonSmall" or self.bot_data.avatar == "dragonOverload" or self.bot_data.avatar == "dragonMacro":
+					self.bot_data.avatar = "gremlinDragon"
+				else:
+					self.bot_data.avatar = "gremlinSphinx"
+			else:
+				self.bot_data.avatar = avatar_info["veadotube_name"]
+
+			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar}"')   
+		elif payload.reward.title == "Memory Leak":
 			self.bot_data.silly_mode ^= True
 			user = self.bot.create_partialuser(user_id=OWNER_ID)
 			await user.send_message(sender=self.bot.user, message=f"{payload.user.display_name} just caused a memory leak.") # type: ignore
-		elif payload.reward.title == "Sphinx":
-			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "sphinx"')
-		elif payload.reward.title == "Aota Avatar":
-			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "aota"')
 
 	@commands.command(aliases=["so"])
 	async def shoutout(self, context: commands.Context):
@@ -100,4 +114,5 @@ class CommandsChat(commands.Component):
 			whom = context.message.text.split()[1] # type: ignore
 			user = self.bot.create_partialuser(user_id=OWNER_ID)
 			await user.send_shoutout(to_broadcaster=whom, moderator=context.author)
+			
 			
