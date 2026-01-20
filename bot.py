@@ -1,6 +1,7 @@
 import json
 import logging
 import random
+import subprocess
 
 import twitchio
 from twitchio import eventsub
@@ -18,6 +19,11 @@ CLIENT_SECRET = bot_secrets_json["client_secret"]
 BOT_ID = bot_secrets_json["bot_id"]
 OWNER_ID = bot_secrets_json["owner_id"]
 bot_secrets.close()
+
+config_data = open("config.json", encoding="utf8")
+config_data_json = json.load(config_data)
+VEADOTUBE_PATH = config_data_json["veadotube_path"]
+config_data.close()
 
 LOGGER: logging.Logger = logging.getLogger("Bot")
 
@@ -82,7 +88,11 @@ class CommandsChat(commands.Component):
 		if payload.reward.title == "Memory Leak":
 			self.bot_data.silly_mode ^= True
 			user = self.bot.create_partialuser(user_id=OWNER_ID)
-			await user.send_message(sender=self.bot.user, message=f"{payload.user.name} just caused a memory leak.") # type: ignore
+			await user.send_message(sender=self.bot.user, message=f"{payload.user.display_name} just caused a memory leak.") # type: ignore
+		elif payload.reward.title == "Sphinx":
+			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "sphinx"')
+		elif payload.reward.title == "Aota Avatar":
+			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "aota"')
 
 	@commands.command(aliases=["so"])
 	async def shoutout(self, context: commands.Context):
