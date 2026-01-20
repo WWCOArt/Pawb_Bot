@@ -39,8 +39,10 @@ class Bot(commands.Bot):
 
 		# Listen for messages on our channel...
 		# You need appropriate scopes, see the docs on authenticating for more info...
-		payload = eventsub.ChatMessageSubscription(broadcaster_user_id=self.owner_id, user_id=self.bot_id)
-		await self.subscribe_websocket(payload=payload)
+		payload_chatmessage = eventsub.ChatMessageSubscription(broadcaster_user_id=self.owner_id, user_id=self.bot_id)
+		payload_channelpoints = eventsub.ChannelPointsRedeemAddSubscription(broadcaster_user_id=self.owner_id)
+		await self.subscribe_websocket(payload=payload_chatmessage)
+		await self.subscribe_websocket(payload=payload_channelpoints)
 
 		await self.add_component(CommandsRules(self.bot_data))
 		await self.add_component(CommandsChat(self, self.bot_data))
@@ -71,6 +73,16 @@ class CommandsChat(commands.Component):
 		
 		if payload.chatter.display_name == "TheZaffreHammer" and "bless" in payload.text.lower():
 			self.bot_data.bless_count += 1
+
+	@commands.Component.listener()
+	async def event_custom_redemption_add(self, payload: twitchio.ChannelPointsRedemptionAdd):
+		if self.bot_data.silly_mode:
+			pass
+
+		if payload.reward.title == "Memory Leak":
+			self.bot_data.silly_mode ^= True
+			user = self.bot.create_partialuser(user_id=OWNER_ID)
+			await user.send_message(sender=self.bot.user, message=f"{payload.user.name} just caused a memory leak.") # type: ignore
 
 	@commands.command(aliases=["so"])
 	async def shoutout(self, context: commands.Context):
