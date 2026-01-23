@@ -30,6 +30,10 @@ avatars_file = open("avatars.json", encoding="utf8")
 AVATARS = json.load(avatars_file)
 avatars_file.close()
 
+redeem_ids_file = open("redeems.json", encoding="utf8")
+REDEEMS = json.load(redeem_ids_file)
+redeem_ids_file.close()
+
 LOGGER: logging.Logger = logging.getLogger("Bot")
 
 class Bot(commands.Bot):
@@ -52,8 +56,12 @@ class Bot(commands.Bot):
 		# You need appropriate scopes, see the docs on authenticating for more info...
 		payload_chatmessage = eventsub.ChatMessageSubscription(broadcaster_user_id=self.owner_id, user_id=self.bot_id)
 		payload_channelpoints = eventsub.ChannelPointsRedeemAddSubscription(broadcaster_user_id=self.owner_id)
+		payload_hypetrain_progress = eventsub.HypeTrainProgressSubscription(broadcaster_user_id=self.owner_id)
+		payload_hypetrain_end = eventsub.HypeTrainEndSubscription(broadcaster_user_id=self.owner_id)
 		await self.subscribe_websocket(payload=payload_chatmessage)
 		await self.subscribe_websocket(payload=payload_channelpoints)
+		await self.subscribe_websocket(payload=payload_hypetrain_progress)
+		await self.subscribe_websocket(payload=payload_hypetrain_end)
 
 		await self.add_component(CommandsRules(self.bot_data))
 		await self.add_component(CommandsChat(self, self.bot_data))
@@ -88,8 +96,13 @@ class CommandsChat(commands.Component):
 
 	@commands.Component.listener()
 	async def event_custom_redemption_add(self, payload: twitchio.ChannelPointsRedemptionAdd):
+		user = self.bot.create_partialuser(user_id=OWNER_ID)
+
 		if self.bot_data.silly_mode:
-			pass
+			for redeem in REDEEMS:
+				if redeem["silly"]:
+					new_cost = random.randrange(2, 1000)
+					await user.update_custom_reward(redeem["id"], cost=new_cost)
 
 		if payload.reward.title in AVATARS:
 			avatar_info = AVATARS[payload.reward.title]
@@ -107,8 +120,53 @@ class CommandsChat(commands.Component):
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar}"')   
 		elif payload.reward.title == "Memory Leak":
 			self.bot_data.silly_mode ^= True
-			user = self.bot.create_partialuser(user_id=OWNER_ID)
-			await user.send_message(sender=self.bot.user, message=f"{payload.user.display_name} just caused a memory leak.") # type: ignore
+			await user.send_message(sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
+
+	@commands.Component.listener()
+	async def event_hype_train_progress(self, payload: twitchio.HypeTrainProgress):
+		user = self.bot.create_partialuser(user_id=OWNER_ID)
+
+		if payload.level > self.bot_data.current_hype_level:
+			if payload.level == 1:
+				await user.update_custom_reward(REDEEMS["HypeDragon1"], enabled=True)
+				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
+			elif payload.level == 2:
+				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 unlocked for rest of stream.") # type: ignore
+			elif payload.level == 3:
+				await user.update_custom_reward(REDEEMS["HypeDragon3"], enabled=True)
+				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 3 unlocked.") # type: ignore
+			elif payload.level == 4:
+				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 3 unlocked for rest of stream.") # type: ignore
+			elif payload.level == 5:
+				await user.update_custom_reward(REDEEMS["HypeDragon5"], enabled=True)
+				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 5 unlocked.") # type: ignore
+			elif payload.level >= 6:
+				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 5 unlocked for rest of stream.") # type: ignore
+
+			self.bot_data.current_hype_level = payload.level
+			self.bot_data.highest_hype_level = payload.level
+
+	@commands.Component.listener()
+	async def event_hype_train_end(self, payload: twitchio.HypeTrainEnd):
+		user = self.bot.create_partialuser(user_id=OWNER_ID)
+
+		if self.bot_data.highest_hype_level < 6:
+			await user.update_custom_reward(REDEEMS["HypeDragon5"], enabled=False)
+			if self.bot_data.current_hype_level > 4:
+				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 5 disabled.") # type: ignore
+
+		if self.bot_data.highest_hype_level < 4:
+			await user.update_custom_reward(REDEEMS["HypeDragon3"], enabled=False)
+			if self.bot_data.current_hype_level > 2:
+				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 3 disabled.") # type: ignore
+
+		if self.bot_data.highest_hype_level < 2:
+			await user.update_custom_reward(REDEEMS["HypeDragon1"], enabled=False)
+			if self.bot_data.current_hype_level > 0:
+				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 disabled.") # type: ignore
+
+		self.bot_data.current_hype_level = 0
+
 
 	@commands.command(aliases=["so"])
 	async def shoutout(self, context: commands.Context):
