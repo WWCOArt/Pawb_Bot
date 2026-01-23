@@ -11,6 +11,7 @@ from bot_data import BotData
 from commands_rules import CommandsRules
 from commands_donos import CommandsDonos
 from commands_misc import CommandsMisc
+from commands_characters import CommandsCharacters
 
 bot_secrets = open("secrets.json", encoding="utf8")
 bot_secrets_json = json.load(bot_secrets)
@@ -58,6 +59,7 @@ class Bot(commands.Bot):
 		await self.add_component(CommandsChat(self, self.bot_data))
 		await self.add_component(CommandsDonos(self.bot_data))
 		await self.add_component(CommandsMisc(self.bot_data))
+		await self.add_component(CommandsCharacters(self.bot_data))
 		LOGGER.info("Finished setup hook!")
 
 class CommandsChat(commands.Component):

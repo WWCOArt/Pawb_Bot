@@ -9,3 +9,6 @@ __pycache__/
 foxrules.json
 commands_secret.py
 variables.json
+forms.json
+commands.txt
+redeems.json
