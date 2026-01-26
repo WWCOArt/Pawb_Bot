@@ -18,6 +18,7 @@ def main() -> None:
 
 	try:
 		asyncio.run(runner())
+		bot.randomize_connection_offline.start()
 	except KeyboardInterrupt:
 		bot.LOGGER.warning("Shutting down due to Keyboard Interrupt...")
 

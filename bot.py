@@ -2,10 +2,11 @@ import json
 import logging
 import random
 import subprocess
+import datetime
 
 import twitchio
 from twitchio import eventsub
-from twitchio.ext import commands
+from twitchio.ext import commands, routines
 
 from bot_data import BotData
 from commands_rules import CommandsRules
@@ -38,7 +39,7 @@ LOGGER: logging.Logger = logging.getLogger("Bot")
 
 class Bot(commands.Bot):
 	def __init__(self) -> None:
-		self.bot_data = BotData()
+		self.bot_data = BotData(AVATARS)
 		super().__init__(
 			client_id=CLIENT_ID,
 			client_secret=CLIENT_SECRET,
@@ -51,7 +52,6 @@ class Bot(commands.Bot):
 	# Do some async setup, as an example we will load a component and subscribe to some events...
 	# Passing the bot to the component is completely optional...
 	async def setup_hook(self) -> None:
-
 		# Listen for messages on our channel...
 		# You need appropriate scopes, see the docs on authenticating for more info...
 		payload_chatmessage = eventsub.ChatMessageSubscription(broadcaster_user_id=self.owner_id, user_id=self.bot_id)
@@ -80,18 +80,7 @@ class CommandsChat(commands.Component):
 		if payload.chatter.user == self.bot.user:
 			return
 		
-		if "tangent is a fox" in payload.text.lower():
-			tangent_form = random.choice([
-				"human",
-				"kitsune",
-				"squirrel",
-				"displacer beast",
-			])
-
-			user = self.bot.create_partialuser(user_id=OWNER_ID)
-			await user.send_message(sender=self.bot.user, message=f"An echo passes through the room. Distance and location unknown. But the sound of a confused {tangent_form} can be heard.") # type: ignore
-		
-		if payload.chatter.display_name == "TheZaffreHammer" and "bless" in payload.text.lower():
+		if payload.chatter.name == "thezaffrehammer" and "bless" in payload.text.lower():
 			self.bot_data.bless_count += 1
 
 	@commands.Component.listener()
@@ -99,7 +88,7 @@ class CommandsChat(commands.Component):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 
 		if self.bot_data.silly_mode:
-			for redeem in REDEEMS:
+			for redeem in REDEEMS.values():
 				if redeem["silly"]:
 					new_cost = random.randrange(2, 1000)
 					await user.update_custom_reward(redeem["id"], cost=new_cost)
@@ -117,10 +106,25 @@ class CommandsChat(commands.Component):
 			else:
 				self.bot_data.avatar = avatar_info["veadotube_name"]
 
-			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar}"')   
-		elif payload.reward.title == "Memory Leak":
+			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar}"')
+		elif payload.reward.id == REDEEMS["RandomAvatar"]["id"]:
+			avatar = self.bot_data.random_avatars.pop()
+			if len(self.bot_data.random_avatars) == 0:
+				self.bot_data.queue_random_avatars(AVATARS)
+
+			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{avatar["veadotube_name"]}"')
+			await user.send_message(sender=self.bot.user, message=avatar["blurb"]) # type: ignore
+		elif payload.reward.title == REDEEMS["MemoryLeak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			await user.send_message(sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
+		elif payload.reward.title == REDEEMS["Nothing"]["id"]:
+			nothing_cost = self.bot_data.get_variable("nothing_cost")
+			self.bot_data.store_variable("nothing_cost", nothing_cost + 1)
+		elif payload.reward.title == REDEEMS["FoxRule"]["id"]:
+			self.bot_data.add_foxrule(payload.user.display_name, payload.user_input) # type: ignore
+			await user.send_message(sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
+		elif payload.reward.title == REDEEMS["First"]["id"]:
+			await user.update_custom_reward(REDEEMS["First"]["id"], title=f"{payload.user.display_name} was first this stream!", enabled=False)
 
 	@commands.Component.listener()
 	async def event_hype_train_progress(self, payload: twitchio.HypeTrainProgress):
@@ -128,17 +132,17 @@ class CommandsChat(commands.Component):
 
 		if payload.level > self.bot_data.current_hype_level:
 			if payload.level == 1:
-				await user.update_custom_reward(REDEEMS["HypeDragon1"], enabled=True)
+				await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=True)
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
 			elif payload.level == 2:
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 unlocked for rest of stream.") # type: ignore
 			elif payload.level == 3:
-				await user.update_custom_reward(REDEEMS["HypeDragon3"], enabled=True)
+				await user.update_custom_reward(REDEEMS["HypeDragon3"]["id"], enabled=True)
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 3 unlocked.") # type: ignore
 			elif payload.level == 4:
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 3 unlocked for rest of stream.") # type: ignore
 			elif payload.level == 5:
-				await user.update_custom_reward(REDEEMS["HypeDragon5"], enabled=True)
+				await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=True)
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 5 unlocked.") # type: ignore
 			elif payload.level >= 6:
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 5 unlocked for rest of stream.") # type: ignore
@@ -151,17 +155,17 @@ class CommandsChat(commands.Component):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 
 		if self.bot_data.highest_hype_level < 6:
-			await user.update_custom_reward(REDEEMS["HypeDragon5"], enabled=False)
+			await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=False)
 			if self.bot_data.current_hype_level > 4:
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 5 disabled.") # type: ignore
 
 		if self.bot_data.highest_hype_level < 4:
-			await user.update_custom_reward(REDEEMS["HypeDragon3"], enabled=False)
+			await user.update_custom_reward(REDEEMS["HypeDragon3"]["id"], enabled=False)
 			if self.bot_data.current_hype_level > 2:
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 3 disabled.") # type: ignore
 
 		if self.bot_data.highest_hype_level < 2:
-			await user.update_custom_reward(REDEEMS["HypeDragon1"], enabled=False)
+			await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=False)
 			if self.bot_data.current_hype_level > 0:
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 disabled.") # type: ignore
 
@@ -176,3 +180,7 @@ class CommandsChat(commands.Component):
 			await user.send_shoutout(to_broadcaster=whom, moderator=context.author)
 			
 			
+@routines.routine(delta=datetime.timedelta(seconds=2))
+async def randomize_connection_offline(bot: Bot):
+	user = bot.create_partialuser(user_id=OWNER_ID)
+	await user.update_custom_reward(REDEEMS["ConnectionOffline"]["id"], cost=random.randint(1000000, 999999999))

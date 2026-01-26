@@ -1,4 +1,5 @@
 import json
+import requests
 from twitchio.ext import commands
 
 from bot_data import BotData
@@ -13,17 +14,26 @@ class CommandsDonos(commands.Component):
 
 	@commands.command()
 	async def queue(self, context: commands.Context):
-		with open("queue.json", encoding="utf8") as queue_file:
-			queue = json.load(queue_file)
-			await context.reply(f"Here is the current queue: {', '.join(queue)}")
+		secrets_file = open("secrets.json", encoding="utf8")
+		secrets = json.load(secrets_file)
+		secrets_file.close()
+
+		api_url = f"https://api.trello.com/1/lists/{secrets["trello_queue_list"]}/cards"
+		query = {
+			"key": secrets["trello_api_key"],
+			"token": secrets["trello_api_token"],
+		}
+
+		response = requests.get(
+			api_url,
+			headers={"Accept": "application/json"},
+			params=query,
+		)
+
+		queue_list = json.loads(response.text)
+		queue_names = [card["name"] for card in queue_list]
+		await context.reply(f"Here is the current queue: {','.join(queue_names)}")
 
 	@commands.command(aliases=["cooldown"])
 	async def donocheck(self, context: commands.Context):
-		with open("dono_cooldowns.json", encoding="utf8") as cooldown_file:
-			cooldowns: dict = json.load(cooldown_file)
-			cooldown = cooldowns.get(context.author.display_name, 0)
-			if cooldown != 0:
-				await context.send(f"{context.author.display_name}, you currently have {cooldown} days until you may get a dono at any price.")
-			else:
-				await context.send(f"{context.author.display_name}, you may currently get a dono at any price.")
-				
+		pass

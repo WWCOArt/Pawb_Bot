@@ -10,19 +10,14 @@ class CommandsRules(commands.Component):
 
 	@commands.command()
 	async def foxrule(self, context: commands.Context):
-		rule = random.choice(self.bot_data.foxrules)
+		rule = self.bot_data.get_foxrule()
 		await context.send(rule["rule"])
 
 	@commands.command()
 	async def foxrulecount(self, context: commands.Context):
-		message = f"There are currently {"1" * len(self.bot_data.foxrules)} Fox Rules."
-		if len(message) > 500:
-			message1 = message[:500]
-			message2 = message[500:]
-			await context.send(message1)
-			await context.send(message2)
-		else:
-			await context.send(message)
+		message_text = f"There are currently {"1" * len(self.bot_data.foxrules)} Fox Rules."
+		for slic in [message_text[i:i + 500] for i  in range(0, len(message_text), 500)]: # evil magic to divide it into 500-character chunks
+			await context.send(slic)
 
 	@commands.command()
 	async def runaryrule(self, context: commands.Context):
