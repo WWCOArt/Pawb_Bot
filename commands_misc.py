@@ -23,7 +23,24 @@ class CommandsMisc(commands.Component):
 
 	@commands.command()
 	async def throne(self, context: commands.Context):
-		await context.send("")
+		if random.binomialvariate(p=0.167):
+			await context.send("Runary's wishlist can be viewed at: https://throne.com/runary")
+		else:
+			await context.send("Sierra's wishlist can be viewed at: https://throne.com/whenwolvescryout")
+
+	@commands.command()
+	async def cc(self, context: commands.Context):
+		await context.send("If you use OBS Studio for streaming, I highly recommend checking out RatWithACompiler's captions plugin. Setup is basically drag and drop, and doesn't require you to have a separate window open while streaming. https://github.com/ratwithacompiler/OBS-captions-plugin")
+
+	@commands.command()
+	async def bleen(self, context: commands.Context):
+		await context.reply("What are you doing?? You're going to attract the Runary!")
+
+	@commands.command()
+	async def scronch(self, context: commands.Context):
+		current_count = self.bot_data.get_variable("scronch_count")
+		self.bot_data.store_variable("scronch_count", current_count + 1)
+		await context.send(f"A foxbird has been observed scronching {current_count + 1} times.")
 
 	@commands.command()
 	async def CHOMP(self, context: commands.Context):

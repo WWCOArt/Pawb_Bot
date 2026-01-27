@@ -68,12 +68,31 @@ class Bot(commands.Bot):
 		await self.add_component(CommandsDonos(self.bot_data))
 		await self.add_component(CommandsMisc(self.bot_data))
 		await self.add_component(CommandsCharacters(self.bot_data))
+
+		user = self.create_partialuser(user_id=OWNER_ID)
+		await user.update_custom_reward(REDEEMS["First"]["id"], title="First", enabled=True)
+
 		LOGGER.info("Finished setup hook!")
 
 class CommandsChat(commands.Component):
 	def __init__(self, bot: Bot, bot_data: BotData):
 		self.bot = bot
 		self.bot_data = bot_data
+
+	async def avatar_transition(self, avatar: str, is_switched_to: bool):
+		redeems_disabled = AVATARS[avatar]["disable_redeems"]
+		redeems_enabled = AVATARS[avatar]["enable_redeems"]
+
+		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		for redeem in redeems_disabled:
+			await user.update_custom_reward(REDEEMS[redeem]["id"], enabled=not is_switched_to)
+		
+		for redeem in redeems_enabled:
+			await user.update_custom_reward(REDEEMS[redeem]["id"], enabled=is_switched_to)
+
+	async def update_redeem_availability(self, previous_avatar: str, new_avatar: str):
+		await self.avatar_transition(previous_avatar, False)
+		await self.avatar_transition(new_avatar, True)
 
 	@commands.Component.listener()
 	async def event_message(self, payload: twitchio.ChatMessage):
@@ -94,6 +113,7 @@ class CommandsChat(commands.Component):
 					await user.update_custom_reward(redeem["id"], cost=new_cost)
 
 		if payload.reward.title in AVATARS:
+			previous_avatar = self.bot_data.avatar
 			avatar_info = AVATARS[payload.reward.title]
 			avatar_name = payload.reward.title
 			if avatar_name == "Kat Avatar":
@@ -107,13 +127,16 @@ class CommandsChat(commands.Component):
 				self.bot_data.avatar = avatar_info["veadotube_name"]
 
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar}"')
+			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
 		elif payload.reward.id == REDEEMS["RandomAvatar"]["id"]:
-			avatar = self.bot_data.random_avatars.pop()
+			previous_avatar = self.bot_data.avatar
+			self.bot_data.avatar = self.bot_data.random_avatars.pop()
 			if len(self.bot_data.random_avatars) == 0:
 				self.bot_data.queue_random_avatars(AVATARS)
 
-			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{avatar["veadotube_name"]}"')
+			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar["veadotube_name"]}"')
 			await user.send_message(sender=self.bot.user, message=avatar["blurb"]) # type: ignore
+			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
 		elif payload.reward.title == REDEEMS["MemoryLeak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			await user.send_message(sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
@@ -183,4 +206,4 @@ class CommandsChat(commands.Component):
 @routines.routine(delta=datetime.timedelta(seconds=2))
 async def randomize_connection_offline(bot: Bot):
 	user = bot.create_partialuser(user_id=OWNER_ID)
-	await user.update_custom_reward(REDEEMS["ConnectionOffline"]["id"], cost=random.randint(1000000, 999999999))
+	await user.update_custom_reward(REDEEMS["ConnectionOffline"]["id"], cost=random.randint(100000000, 999999999))
