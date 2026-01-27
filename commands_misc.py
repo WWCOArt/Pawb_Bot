@@ -22,6 +22,10 @@ class CommandsMisc(commands.Component):
 		await context.send(f"Sierra has been distracted {self.bot_data.distracted_count} time{"s" if self.bot_data.distracted_count != 1 else ""} this stream.")
 
 	@commands.command()
+	async def undocount(self, context: commands.Context):
+		await context.send(f"Sierra has pressed ctrl+z {self.bot_data.undo_count} times this stream.")
+
+	@commands.command()
 	async def throne(self, context: commands.Context):
 		if random.binomialvariate(p=0.167):
 			await context.send("Runary's wishlist can be viewed at: https://throne.com/runary")

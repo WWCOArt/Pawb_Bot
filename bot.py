@@ -3,6 +3,7 @@ import logging
 import random
 import subprocess
 import datetime
+import keyboard
 
 import twitchio
 from twitchio import eventsub
@@ -34,6 +35,10 @@ avatars_file.close()
 redeem_ids_file = open("redeems.json", encoding="utf8")
 REDEEMS = json.load(redeem_ids_file)
 redeem_ids_file.close()
+
+greetings_file = open("greetings.json", encoding="utf8")
+GREETINGS = json.load(greetings_file)
+greetings_file.close
 
 LOGGER: logging.Logger = logging.getLogger("Bot")
 
@@ -72,7 +77,14 @@ class Bot(commands.Bot):
 		user = self.create_partialuser(user_id=OWNER_ID)
 		await user.update_custom_reward(REDEEMS["First"]["id"], title="First", enabled=True)
 
+		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self]) #type: ignore
+
 		LOGGER.info("Finished setup hook!")
+
+	async def close(self, **options):
+		user = self.create_partialuser(user_id=OWNER_ID)
+		await user.send_message(sender=self.bot.user, message="PawbOS 2.0 shutting down.") # type: ignore
+		await super().close(**options)
 
 class CommandsChat(commands.Component):
 	def __init__(self, bot: Bot, bot_data: BotData):
@@ -99,8 +111,19 @@ class CommandsChat(commands.Component):
 		if payload.chatter.user == self.bot.user:
 			return
 		
+		user = self.bot.create_partialuser(user_id=OWNER_ID)
+
 		if payload.chatter.name == "thezaffrehammer" and "bless" in payload.text.lower():
 			self.bot_data.bless_count += 1
+
+		if payload.chatter.name in GREETINGS and not payload.chatter.name in self.bot_data.greetings_said:
+			if isinstance(GREETINGS[payload.chatter.name], str):
+				await user.send_message(sender=self.bot.user, message=GREETINGS[payload.chatter.name]) # type: ignore
+			else:
+				await user.send_message(sender=self.bot.user, message=GREETINGS[payload.chatter.name][self.bot_data.get_variable("current_forms")[payload.chatter.name]]) # type: ignore
+
+			self.bot_data.greetings_said.add(payload.chatter.name)
+
 
 	@commands.Component.listener()
 	async def event_custom_redemption_add(self, payload: twitchio.ChannelPointsRedemptionAdd):
@@ -207,3 +230,6 @@ class CommandsChat(commands.Component):
 async def randomize_connection_offline(bot: Bot):
 	user = bot.create_partialuser(user_id=OWNER_ID)
 	await user.update_custom_reward(REDEEMS["ConnectionOffline"]["id"], cost=random.randint(100000000, 999999999))
+
+def increment_undo(bot: Bot):
+	bot.bot_data.undo_count += 1
