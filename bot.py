@@ -23,22 +23,18 @@ BOT_ID = bot_secrets_json["bot_id"]
 OWNER_ID = bot_secrets_json["owner_id"]
 bot_secrets.close()
 
-config_data = open("config.json", encoding="utf8")
-config_data_json = json.load(config_data)
-VEADOTUBE_PATH = config_data_json["veadotube_path"]
-config_data.close()
+with open("config.json", encoding="utf8") as config_data:
+	config_data_json = json.load(config_data)
+	VEADOTUBE_PATH = config_data_json["veadotube_path"]
 
-avatars_file = open("avatars.json", encoding="utf8")
-AVATARS = json.load(avatars_file)
-avatars_file.close()
+with open("avatars.json", encoding="utf8") as avatars_file:
+	AVATARS = json.load(avatars_file)
 
-redeem_ids_file = open("redeems.json", encoding="utf8")
-REDEEMS = json.load(redeem_ids_file)
-redeem_ids_file.close()
+with open("redeems.json", encoding="utf8") as redeem_ids_file:
+	REDEEMS = json.load(redeem_ids_file)
 
-greetings_file = open("greetings.json", encoding="utf8")
-GREETINGS = json.load(greetings_file)
-greetings_file.close
+with open("greetings.json", encoding="utf8") as greetings_file:
+	GREETINGS = json.load(greetings_file)
 
 LOGGER: logging.Logger = logging.getLogger("Bot")
 
@@ -77,7 +73,7 @@ class Bot(commands.Bot):
 		user = self.create_partialuser(user_id=OWNER_ID)
 		await user.update_custom_reward(REDEEMS["First"]["id"], title="First", enabled=True)
 
-		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self]) #type: ignore
+		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self]) # type: ignore
 
 		LOGGER.info("Finished setup hook!")
 
@@ -123,7 +119,6 @@ class CommandsChat(commands.Component):
 				await user.send_message(sender=self.bot.user, message=GREETINGS[payload.chatter.name][self.bot_data.get_variable("current_forms")[payload.chatter.name]]) # type: ignore
 
 			self.bot_data.greetings_said.add(payload.chatter.name)
-
 
 	@commands.Component.listener()
 	async def event_custom_redemption_add(self, payload: twitchio.ChannelPointsRedemptionAdd):
@@ -216,7 +211,6 @@ class CommandsChat(commands.Component):
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 disabled.") # type: ignore
 
 		self.bot_data.current_hype_level = 0
-
 
 	@commands.command(aliases=["so"])
 	async def shoutout(self, context: commands.Context):
