@@ -127,7 +127,7 @@ class CommandsChat(commands.Component):
 		if self.bot_data.silly_mode:
 			for redeem in REDEEMS.values():
 				if redeem["silly"]:
-					new_cost = random.randrange(2, 1000)
+					new_cost = random.randrange(2, 999)
 					await user.update_custom_reward(redeem["id"], cost=new_cost)
 
 		if payload.reward.title in AVATARS:
@@ -161,6 +161,7 @@ class CommandsChat(commands.Component):
 		elif payload.reward.title == REDEEMS["Nothing"]["id"]:
 			nothing_cost = self.bot_data.get_variable("nothing_cost")
 			self.bot_data.store_variable("nothing_cost", nothing_cost + 1)
+			await user.update_custom_reward(REDEEMS["Nothing"]["id"], cost=nothing_cost)
 		elif payload.reward.title == REDEEMS["FoxRule"]["id"]:
 			self.bot_data.add_foxrule(payload.user.display_name, payload.user_input) # type: ignore
 			await user.send_message(sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
