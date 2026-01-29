@@ -1,5 +1,6 @@
 import json
 import random
+import sqlite3
 
 class BotData():
 	def __init__(self, avatars: dict):
@@ -13,31 +14,39 @@ class BotData():
 		self.best_button_broken = False
 		self.greetings_said = set()
 
-		with open("foxrules.json", encoding="utf8") as foxrules_file:
-			self.foxrules = json.load(foxrules_file)
-		
-		with open("variables.json", encoding="utf8") as variables_file:
-			self.variables = json.load(variables_file)
+		self.database = sqlite3.connect("bot_data.db")
+		self.database_cursor = self.database.cursor()
 
 		self.queue_random_avatars(avatars)
 	
 	def get_variable(self, name: str):
-		return self.variables[name]
+		self.database_cursor.execute("SELECT value FROM variables WHERE name = ?", (name))
+		return self.database_cursor.fetchone()[0]
 		
 	def store_variable(self, name: str, value):
-		self.variables[name] = value
-		variables_file = open("variables.json", "w", encoding="utf8")
-		json.dump(self.variables, variables_file)
-		variables_file.close()
+		self.database_cursor.execute("UPDATE variables SET value = ? WHERE name = ?", (value, name))
 
-	def get_foxrule(self):
-		return random.choice(self.foxrules)
+	def get_foxrule(self) -> str:
+		self.database_cursor.execute("SELECT rule FROM fox_rules ORDER BY RANDOM() LIMIT 1")
+		return self.database_cursor.fetchone()[0]
 	
 	def add_foxrule(self, author: str, rule: str):
-		self.foxrules.append({"author": author, "rule": rule})
-		foxrules_file = open("foxrules.json", "w", encoding="utf8")
-		json.dump(self.foxrules, foxrules_file)
-		foxrules_file.close()
+		self.database_cursor.execute("INSERT INTO fox_rules VALUES (?, ?)", (rule, author))
+
+	def get_foxrule_count(self) -> int:
+		self.database_cursor.execute("SELECT COUNT(*) FROM fox_rules")
+		return self.database_cursor.fetchone()[0]
+	
+	def get_first_count(self, username: str) -> int:
+		self.database_cursor.execute("SELECT count FROM first_counts WHERE username = ?", (username))
+		return self.database_cursor.fetchone()[0]
+	
+	def increment_first_count(self, username: str):
+		self.database_cursor.execute("UPDATE first_counts SET count = count + 1 WHERE username = ?", (username))
+
+	def get_current_chatter_form(self, username: str) -> str:
+		self.database_cursor.execute("SELECT form FROM chatter_forms WHERE username = ?", (username))
+		return self.database_cursor.fetchone()[0]
 
 	def queue_random_avatars(self, avatars: dict):
 		self.random_avatars = [av for av in avatars.values() if av["allow_random"]]

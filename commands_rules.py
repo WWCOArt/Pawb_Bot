@@ -11,11 +11,11 @@ class CommandsRules(commands.Component):
 	@commands.command()
 	async def foxrule(self, context: commands.Context):
 		rule = self.bot_data.get_foxrule()
-		await context.send(rule["rule"])
+		await context.send(rule)
 
 	@commands.command()
 	async def foxrulecount(self, context: commands.Context):
-		message_text = f"There are currently {"1" * len(self.bot_data.foxrules)} Fox Rules."
+		message_text = f"There are currently {"1" * self.bot_data.get_foxrule_count()} Fox Rules."
 		for slic in [message_text[i:i + 500] for i  in range(0, len(message_text), 500)]: # evil magic to divide it into 500-character chunks
 			await context.send(slic)
 

@@ -116,7 +116,7 @@ class CommandsChat(commands.Component):
 			if isinstance(GREETINGS[payload.chatter.name], str):
 				await user.send_message(sender=self.bot.user, message=GREETINGS[payload.chatter.name]) # type: ignore
 			else:
-				await user.send_message(sender=self.bot.user, message=GREETINGS[payload.chatter.name][self.bot_data.get_variable("current_forms")[payload.chatter.name]]) # type: ignore
+				await user.send_message(sender=self.bot.user, message=GREETINGS[payload.chatter.name][self.bot_data.get_current_chatter_form(payload.chatter.name)]) # type: ignore
 
 			self.bot_data.greetings_said.add(payload.chatter.name)
 
@@ -166,7 +166,8 @@ class CommandsChat(commands.Component):
 			self.bot_data.add_foxrule(payload.user.display_name, payload.user_input) # type: ignore
 			await user.send_message(sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
 		elif payload.reward.title == REDEEMS["First"]["id"]:
-			await user.update_custom_reward(REDEEMS["First"]["id"], title=f"{payload.user.display_name} was first this stream!", enabled=False)
+			self.bot_data.increment_first_count(payload.user.name) # type: ignore
+			await user.update_custom_reward(REDEEMS["First"]["id"], title=f"{payload.user.display_name} was first this stream! They've been first {self.bot_data.get_first_count(payload.user.name)} times!", enabled=False) # type: ignore
 
 	@commands.Component.listener()
 	async def event_hype_train_progress(self, payload: twitchio.HypeTrainProgress):
