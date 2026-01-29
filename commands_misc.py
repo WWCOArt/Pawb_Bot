@@ -43,7 +43,7 @@ class CommandsMisc(commands.Component):
 	@commands.command()
 	async def scronch(self, context: commands.Context):
 		current_count = self.bot_data.get_variable("scronch_count")
-		self.bot_data.store_variable("scronch_count", current_count + 1)
+		self.bot_data.increment_variable("scronch_count")
 		await context.send(f"A foxbird has been observed scronching {current_count + 1} times.")
 
 	@commands.command()
@@ -54,3 +54,22 @@ class CommandsMisc(commands.Component):
 			await asyncio.sleep(600)
 			self.bot_data.best_button_broken = False
 			await context.send("The best button has been repaired! c:")
+
+	@commands.command()
+	async def tirgatail(self, context: commands.Context):
+		self.bot_data.database_cursor.execute("SELECT length FROM tirga_tail_lengths WHERE username = ?", (context.author.name)) # type: ignore
+		your_length = self.bot_data.database_cursor.fetchone()
+		your_length = 10 if your_length == None else your_length[0]
+
+		self.bot_data.database_cursor.execute("SELECT length FROM tirga_tail_lengths WHERE username = 'tirgathemadcat'")
+		tirgas_length = self.bot_data.database_cursor.fetchone()[0]
+
+		is_steal = random.binomialvariate(p=0.5)
+		length_change = max(random.randrange(-20, 20) * your_length / 100, 10) * (-1 if is_steal else 1)
+		new_tirgas_length = tirgas_length + length_change
+		new_your_length = your_length - length_change
+
+		self.bot_data.database_cursor.execute("UPDATE tirga_tail_lengths SET length = ? WHERE username = ?", (new_your_length, context.author.name))
+		self.bot_data.database_cursor.execute("UPDATE tirga_tail_lengths SET length = ? WHERE username = 'tirgathemadcat'", (new_tirgas_length))
+
+		await context.send(f"{context.author.display_name} has {'stolen' if is_steal else 'gifted'} {abs(length_change)} cm {'from' if is_steal else 'to'} TirgaTheMadCat's tail! And her tail is now {new_tirgas_length} cm long!")

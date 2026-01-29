@@ -153,7 +153,7 @@ class CommandsChat(commands.Component):
 				self.bot_data.queue_random_avatars(AVATARS)
 
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar["veadotube_name"]}"')
-			await user.send_message(sender=self.bot.user, message=avatar["blurb"]) # type: ignore
+			await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(avatar["blurb"])) # type: ignore
 			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
 		elif payload.reward.title == REDEEMS["MemoryLeak"]["id"]:
 			self.bot_data.silly_mode ^= True
