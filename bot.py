@@ -71,16 +71,23 @@ class Bot(commands.Bot):
 		await self.add_component(CommandsCharacters(self.bot_data))
 
 		user = self.create_partialuser(user_id=OWNER_ID)
-		await user.update_custom_reward(REDEEMS["First"]["id"], title="First", enabled=True)
+		await user.send_message(sender=self.bot.user, message="PawbOS 2.0 booting up.") # type: ignore
+		await user.update_custom_reward(REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
 
 		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self]) # type: ignore
 
 		LOGGER.info("Finished setup hook!")
 
 	async def close(self, **options):
+		self.bot_data.database.close()
+
 		user = self.create_partialuser(user_id=OWNER_ID)
 		await user.send_message(sender=self.bot.user, message="PawbOS 2.0 shutting down.") # type: ignore
+
 		await super().close(**options)
+
+	def process_input(self, inp: str):
+		print(inp)
 
 class CommandsChat(commands.Component):
 	def __init__(self, bot: Bot, bot_data: BotData):
@@ -113,10 +120,12 @@ class CommandsChat(commands.Component):
 			self.bot_data.bless_count += 1
 
 		if payload.chatter.name in GREETINGS and not payload.chatter.name in self.bot_data.greetings_said:
-			if isinstance(GREETINGS[payload.chatter.name], str):
-				await user.send_message(sender=self.bot.user, message=GREETINGS[payload.chatter.name]) # type: ignore
-			else:
-				await user.send_message(sender=self.bot.user, message=GREETINGS[payload.chatter.name][self.bot_data.get_current_chatter_form(payload.chatter.name)]) # type: ignore
+			if isinstance(GREETINGS[payload.chatter.name], str): # string = single greeting
+				await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(GREETINGS[payload.chatter.name])) # type: ignore
+			elif isinstance(GREETINGS[payload.chatter.name], list): # list = randomly pick from multiple greetings
+				await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(random.choice(GREETINGS[payload.chatter.name]))) # type: ignore
+			else: # dictionary = pick greeting based on form
+				await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(GREETINGS[payload.chatter.name][self.bot_data.get_current_chatter_form(payload.chatter.name)]["greeting"])) # type: ignore
 
 			self.bot_data.greetings_said.add(payload.chatter.name)
 
@@ -146,28 +155,28 @@ class CommandsChat(commands.Component):
 
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar}"')
 			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
-		elif payload.reward.id == REDEEMS["RandomAvatar"]["id"]:
+		elif payload.reward.id == REDEEMS["Random Avatar"]["id"]:
 			previous_avatar = self.bot_data.avatar
-			self.bot_data.avatar = self.bot_data.random_avatars.pop()
+			self.bot_data.avatar = self.bot_data.random_avatars.pop()["veadotube_name"]
 			if len(self.bot_data.random_avatars) == 0:
 				self.bot_data.queue_random_avatars(AVATARS)
 
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar["veadotube_name"]}"')
-			await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(avatar["blurb"])) # type: ignore
+			await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(avatar["description"])) # type: ignore
 			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
-		elif payload.reward.title == REDEEMS["MemoryLeak"]["id"]:
+		elif payload.reward.title == REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			await user.send_message(sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
-		elif payload.reward.title == REDEEMS["Nothing"]["id"]:
+		elif payload.reward.title == REDEEMS["This Redeem does nothing"]["id"]:
 			nothing_cost = self.bot_data.get_variable("nothing_cost")
 			self.bot_data.store_variable("nothing_cost", nothing_cost + 1)
-			await user.update_custom_reward(REDEEMS["Nothing"]["id"], cost=nothing_cost)
-		elif payload.reward.title == REDEEMS["FoxRule"]["id"]:
+			await user.update_custom_reward(REDEEMS["This Redeem does nothing"]["id"], cost=nothing_cost)
+		elif payload.reward.title == REDEEMS["Create a Fox Rule!"]["id"]:
 			self.bot_data.add_foxrule(payload.user.display_name, payload.user_input) # type: ignore
 			await user.send_message(sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
-		elif payload.reward.title == REDEEMS["First"]["id"]:
+		elif payload.reward.title == REDEEMS["First!"]["id"]:
 			self.bot_data.increment_first_count(payload.user.name) # type: ignore
-			await user.update_custom_reward(REDEEMS["First"]["id"], title=f"{payload.user.display_name} was first this stream! They've been first {self.bot_data.get_first_count(payload.user.name)} times!", enabled=False) # type: ignore
+			await user.update_custom_reward(REDEEMS["First!"]["id"], title=f"{payload.user.display_name} was first this stream!", prompt=f"They've been first {self.bot_data.get_first_count(payload.user.name)} times!") # type: ignore
 
 	@commands.Component.listener()
 	async def event_hype_train_progress(self, payload: twitchio.HypeTrainProgress):
@@ -220,8 +229,7 @@ class CommandsChat(commands.Component):
 			whom = context.message.text.split()[1] # type: ignore
 			user = self.bot.create_partialuser(user_id=OWNER_ID)
 			await user.send_shoutout(to_broadcaster=whom, moderator=context.author)
-			
-			
+
 @routines.routine(delta=datetime.timedelta(seconds=2))
 async def randomize_connection_offline(bot: Bot):
 	user = bot.create_partialuser(user_id=OWNER_ID)

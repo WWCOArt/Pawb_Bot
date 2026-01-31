@@ -48,7 +48,7 @@ class CommandsMisc(commands.Component):
 
 	@commands.command()
 	async def CHOMP(self, context: commands.Context):
-		if context.author.name == "runary":
+		if context.author.name == "runary" and not self.bot_data.best_button_broken:
 			self.bot_data.best_button_broken = True
 			await context.send("The best button has been chomped and is now broken! :c")
 			await asyncio.sleep(600)
