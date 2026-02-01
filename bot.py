@@ -73,18 +73,6 @@ class Bot(commands.Bot):
 		user = self.create_partialuser(user_id=OWNER_ID)
 		await user.send_message(sender=self.user, message="PawbOS 2.0 booting up.") # type: ignore
 
-		rewards = await user.fetch_custom_rewards(ids=["d4169fc0-17a8-447b-92da-3b928f75caa2"])
-		power_word_tetris_reward = rewards[0]
-		new_power_word_tetris = await user.create_custom_reward(
-			title=power_word_tetris_reward.title,
-			prompt=power_word_tetris_reward.prompt,
-			cost=power_word_tetris_reward.cost,
-			background_color=power_word_tetris_reward.color,
-			global_cooldown=power_word_tetris_reward.cooldown.seconds,
-		)
-
-		await user.update_custom_reward(new_power_word_tetris.id, cost=25001)
-
 		#await user.update_custom_reward(REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
 
 		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self]) # type: ignore
