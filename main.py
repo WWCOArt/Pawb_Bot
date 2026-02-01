@@ -17,17 +17,8 @@ def main() -> None:
 		async with b as bot:
 			await bot.start()
 
-	async def console() -> None:
-		while True:
-			console_input = await aioconsole.ainput()
-			b.process_input(console_input)
-
 	try:
-		asyncio.get_event_loop().run_until_complete(asyncio.wait([
-			runner(),
-			console(),
-		])) # type: ignore
-
+		asyncio.run(runner())
 		bot.randomize_connection_offline.start()
 	except KeyboardInterrupt:
 		bot.LOGGER.warning("Shutting down due to Keyboard Interrupt...")
