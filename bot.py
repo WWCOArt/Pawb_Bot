@@ -132,6 +132,7 @@ class CommandsChat(commands.Component):
 
 	@commands.Component.listener()
 	async def event_custom_redemption_add(self, payload: twitchio.ChannelPointsRedemptionAdd):
+		print(payload.reward.title)
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 
 		if self.bot_data.silly_mode:
@@ -165,21 +166,22 @@ class CommandsChat(commands.Component):
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar["veadotube_name"]}"')
 			await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(avatar["description"])) # type: ignore
 			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
-		elif payload.reward.title == REDEEMS["Memory Leak"]["id"]:
+		elif payload.reward.id == REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			for redeem in REDEEMS.values():
 				if redeem["silly"]:
 					await user.update_custom_reward(redeem["id"], cost=random.randrange(2, 999) if self.bot_data.silly_mode else redeem["base_price"])
 
 			await user.send_message(sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
-		elif payload.reward.title == REDEEMS["This Redeem does nothing"]["id"]:
+		elif payload.reward.id == REDEEMS["This Redeem does nothing"]["id"]:
 			nothing_cost = self.bot_data.get_variable("nothing_cost")
 			self.bot_data.store_variable("nothing_cost", nothing_cost + 1)
 			await user.update_custom_reward(REDEEMS["This Redeem does nothing"]["id"], cost=nothing_cost)
-		elif payload.reward.title == REDEEMS["Create a Fox Rule!"]["id"]:
+		elif payload.reward.id == REDEEMS["Create a Fox Rule!"]["id"]:
+			print("test")
 			self.bot_data.add_foxrule(payload.user.display_name, payload.user_input) # type: ignore
 			await user.send_message(sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
-		elif payload.reward.title == REDEEMS["First!"]["id"]:
+		elif payload.reward.id == REDEEMS["First!"]["id"]:
 			self.bot_data.increment_first_count(payload.user.name) # type: ignore
 			await user.update_custom_reward(REDEEMS["First!"]["id"], title=f"{payload.user.display_name} was first this stream!", prompt=f"They've been first {self.bot_data.get_first_count(payload.user.name)} times!") # type: ignore
 

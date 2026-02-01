@@ -25,7 +25,7 @@ class BotData():
 		self.vars_regex = re.compile(r"\$\{(.+?)\}")
 	
 	def get_variable(self, name: str):
-		self.database_cursor.execute("SELECT value FROM variables WHERE name = ?", (name))
+		self.database_cursor.execute("SELECT value FROM variables WHERE name = ?", (name,))
 		return self.database_cursor.fetchone()[0]
 		
 	def store_variable(self, name: str, value):
@@ -33,7 +33,7 @@ class BotData():
 		self.database.commit()
 
 	def increment_variable(self, name: str):
-		self.database_cursor.execute("UPDATE variables SET value = value + 1 WHERE name = ?", (name))
+		self.database_cursor.execute("UPDATE variables SET value = value + 1 WHERE name = ?", (name,))
 		self.database.commit()
 
 	def get_foxrule(self) -> str:
@@ -51,15 +51,15 @@ class BotData():
 		return self.database_cursor.fetchone()[0]
 
 	def get_first_count(self, username: str) -> int:
-		self.database_cursor.execute("SELECT count FROM first_counts WHERE username = ?", (username))
+		self.database_cursor.execute("SELECT count FROM first_counts WHERE username = ?", (username,))
 		return self.database_cursor.fetchone()[0]
 
 	def increment_first_count(self, username: str):
-		self.database_cursor.execute("UPDATE first_counts SET count = count + 1 WHERE username = ?", (username))
+		self.database_cursor.execute("UPDATE first_counts SET count = count + 1 WHERE username = ?", (username,))
 		self.database.commit()
 
 	def get_current_chatter_form(self, username: str) -> str:
-		self.database_cursor.execute("SELECT current_form FROM chatter_forms WHERE username = ?", (username))
+		self.database_cursor.execute("SELECT current_form FROM chatter_forms WHERE username = ?", (username,))
 		return self.database_cursor.fetchone()[0]
 
 	def update_tail_length(self, username: str, amount: int):
@@ -78,7 +78,7 @@ class BotData():
 			if mat == "mainecoone_name":
 				value = utility_functions.get_mainecoone_name("pawb_bot")
 			else:
-				self.database_cursor.execute("SELECT value FROM variables WHERE name = ?", (mat))
+				self.database_cursor.execute("SELECT value FROM variables WHERE name = ?", (mat,))
 				value = self.database_cursor.fetchone()[0]
 
 			result = self.vars_regex.sub(str(value), result, 1)
