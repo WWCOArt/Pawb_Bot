@@ -71,7 +71,7 @@ class Bot(commands.Bot):
 		await self.add_component(CommandsCharacters(self.bot_data))
 
 		user = self.create_partialuser(user_id=OWNER_ID)
-		await user.send_message(sender=self.bot.user, message="PawbOS 2.0 booting up.") # type: ignore
+		await user.send_message(sender=self.user, message="PawbOS 2.0 booting up.") # type: ignore
 		await user.update_custom_reward(REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
 
 		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self]) # type: ignore
@@ -82,7 +82,7 @@ class Bot(commands.Bot):
 		self.bot_data.database.close()
 
 		user = self.create_partialuser(user_id=OWNER_ID)
-		await user.send_message(sender=self.bot.user, message="PawbOS 2.0 shutting down.") # type: ignore
+		await user.send_message(sender=self.user, message="PawbOS 2.0 shutting down.") # type: ignore
 
 		await super().close(**options)
 
