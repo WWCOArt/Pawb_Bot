@@ -166,6 +166,10 @@ class CommandsChat(commands.Component):
 			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
 		elif payload.reward.title == REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
+			for redeem in REDEEMS.values():
+				if redeem["silly"]:
+					await user.update_custom_reward(redeem["id"], cost=random.randrange(2, 999) if self.bot_data.silly_mode else redeem["base_price"])
+
 			await user.send_message(sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
 		elif payload.reward.title == REDEEMS["This Redeem does nothing"]["id"]:
 			nothing_cost = self.bot_data.get_variable("nothing_cost")
