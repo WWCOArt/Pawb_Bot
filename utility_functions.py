@@ -5,6 +5,36 @@ import json
 from num2words import num2words
 from CnyZodiac import ChineseNewYearZodiac as cnyz
 
+def string_to_leetspeak(string: str) -> str:
+	table = {
+		"o": "0",
+		"i": "1",
+		"z": "2",
+		"e": "3",
+		"a": "4",
+		"s": "5",
+		"g": "6",
+		"t": "7",
+		"O": "N",
+		"I": "I",
+		"Z": "II",
+		"E": "III",
+		"A": "IV",
+		"S": "V",
+		"G": "VI",
+		"T": "VII",
+	}
+
+	result = ""
+	for char in string:
+		replacement = table.get(char)
+		if replacement != None:
+			result += replacement
+		else:
+			result += char
+
+	return result
+
 def get_mainecoone_name(person_talking: str) -> str:
 	today = datetime.datetime.today()
 	weekday = today.weekday()

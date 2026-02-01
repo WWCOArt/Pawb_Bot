@@ -32,7 +32,7 @@ class CommandsDonos(commands.Component):
 
 		queue_list = json.loads(response.text)
 		queue_names = [card["name"] for card in queue_list]
-		await context.reply(f"Here's the current queue: {','.join(queue_names)}")
+		await context.reply(f"Here's the current queue: {', '.join(queue_names)}")
 
 	@commands.command(aliases=["cooldown", "dono", "donos"])
 	async def donocheck(self, context: commands.Context):
