@@ -30,9 +30,11 @@ class BotData():
 		
 	def store_variable(self, name: str, value):
 		self.database_cursor.execute("UPDATE variables SET value = ? WHERE name = ?", (value, name))
+		self.database.commit()
 
 	def increment_variable(self, name: str):
 		self.database_cursor.execute("UPDATE variables SET value = value + 1 WHERE name = ?", (name))
+		self.database.commit()
 
 	def get_foxrule(self) -> str:
 		self.database_cursor.execute("SELECT rule FROM fox_rules ORDER BY RANDOM() LIMIT 1")
@@ -42,6 +44,7 @@ class BotData():
 		self.database_cursor.execute("SELECT MAX(num) FROM fox_rules")
 		new_num = self.database_cursor.fetchone()[0] + 1
 		self.database_cursor.execute("INSERT INTO fox_rules VALUES (?, ?, ?, DATETIME('now', 'localtime'))", (new_num, rule, author))
+		self.database.commit()
 
 	def get_foxrule_count(self) -> int:
 		self.database_cursor.execute("SELECT COUNT(*) FROM fox_rules")
@@ -53,13 +56,15 @@ class BotData():
 
 	def increment_first_count(self, username: str):
 		self.database_cursor.execute("UPDATE first_counts SET count = count + 1 WHERE username = ?", (username))
+		self.database.commit()
 
 	def get_current_chatter_form(self, username: str) -> str:
-		self.database_cursor.execute("SELECT form FROM chatter_forms WHERE username = ?", (username))
+		self.database_cursor.execute("SELECT current_form FROM chatter_forms WHERE username = ?", (username))
 		return self.database_cursor.fetchone()[0]
 
 	def update_tail_length(self, username: str, amount: int):
 		self.database_cursor.execute("UPDATE tirga_tail_lengths SET length = length + ? WHERE username = ?", (amount, username))
+		self.database.commit()
 
 	def queue_random_avatars(self, avatars: dict):
 		self.random_avatars = [av for av in avatars.values() if av["allow_random"]]
