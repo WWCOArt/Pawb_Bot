@@ -121,6 +121,9 @@ class CommandsChat(commands.Component):
 			self.bot_data.bless_count += 1
 
 		if payload.chatter.name in GREETINGS and not payload.chatter.name in self.bot_data.greetings_said:
+			if payload.chatter.name == "flomuffin":
+				self.bot_data.increment_variable("door_count")
+
 			if isinstance(GREETINGS[payload.chatter.name], str): # string = single greeting
 				await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(GREETINGS[payload.chatter.name])) # type: ignore
 			elif isinstance(GREETINGS[payload.chatter.name], list): # list = randomly pick from multiple greetings
