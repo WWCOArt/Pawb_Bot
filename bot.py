@@ -4,12 +4,15 @@ import random
 import subprocess
 import datetime
 import keyboard
+import asyncio
+from collections import deque
 
 import twitchio
 from twitchio import eventsub
 from twitchio.ext import commands, routines
 
 from bot_data import BotData
+from avatar_action import ActionType, AvatarAction
 from commands_rules import CommandsRules
 from commands_donos import CommandsDonos
 from commands_misc import CommandsMisc
@@ -94,6 +97,7 @@ class CommandsChat(commands.Component):
 	def __init__(self, bot: Bot, bot_data: BotData):
 		self.bot = bot
 		self.bot_data = bot_data
+		self.action_queue = deque[AvatarAction]()
 
 	async def avatar_transition(self, avatar: str, is_switched_to: bool):
 		redeems_disabled = AVATARS[avatar]["disable_redeems"]
@@ -109,6 +113,47 @@ class CommandsChat(commands.Component):
 	async def update_redeem_availability(self, previous_avatar: str, new_avatar: str):
 		await self.avatar_transition(previous_avatar, False)
 		await self.avatar_transition(new_avatar, True)
+
+	async def advance_action_queue(self):
+		action = self.action_queue.popleft()
+		if action.type == ActionType.AVATAR_CHANGE:
+			previous_avatar = self.bot_data.avatar
+			avatar_info = AVATARS[action.avatar]
+			avatar_name = action.avatar
+			if avatar_name == "Kat Avatar":
+				self.bot_data.avatar = random.choices(["katMale", "katFemale", "katNanite"], weights=[90, 90, 20], k=1)[0]
+			elif avatar_name == "Gremlin":
+				if self.bot_data.avatar == "dragonSmall" or self.bot_data.avatar == "dragonOverload" or self.bot_data.avatar == "dragonMacro":
+					self.bot_data.avatar = "gremlinDragon"
+				else:
+					self.bot_data.avatar = "gremlinSphinx"
+			else:
+				self.bot_data.avatar = avatar_info["veadotube_name"]
+
+			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar}"')
+			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
+		elif action.type == ActionType.RANDOM_AVATAR:
+			previous_avatar = self.bot_data.avatar
+			self.bot_data.avatar = self.bot_data.random_avatars.pop()["veadotube_name"]
+			if len(self.bot_data.random_avatars) == 0:
+				self.bot_data.queue_random_avatars(AVATARS)
+
+			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar["veadotube_name"]}"')
+			await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(avatar["description"])) # type: ignore
+			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
+		elif action.type == ActionType.HEADPATS:
+			pass
+		else:
+			pass
+
+		await asyncio.sleep(5)
+		if len(self.action_queue) > 0:
+			await self.advance_action_queue()
+
+	async def queue_action(self, action: AvatarAction):
+		self.action_queue.append(action)
+		if len(self.action_queue) == 1:
+			await self.advance_action_queue()
 
 	@commands.Component.listener()
 	async def event_message(self, payload: twitchio.ChatMessage):
@@ -145,30 +190,13 @@ class CommandsChat(commands.Component):
 					await user.update_custom_reward(redeem["id"], cost=new_cost)
 
 		if payload.reward.title in AVATARS:
-			previous_avatar = self.bot_data.avatar
-			avatar_info = AVATARS[payload.reward.title]
-			avatar_name = payload.reward.title
-			if avatar_name == "Kat Avatar":
-				self.bot_data.avatar = random.choices(["katMale", "katFemale", "katNanite"], weights=[90, 90, 20], k=1)[0]
-			elif avatar_name == "Gremlin":
-				if self.bot_data.avatar == "dragonSmall" or self.bot_data.avatar == "dragonOverload" or self.bot_data.avatar == "dragonMacro":
-					self.bot_data.avatar = "gremlinDragon"
-				else:
-					self.bot_data.avatar = "gremlinSphinx"
-			else:
-				self.bot_data.avatar = avatar_info["veadotube_name"]
-
-			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar}"')
-			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
+			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, payload.reward.title))
 		elif payload.reward.id == REDEEMS["Random Avatar"]["id"]:
-			previous_avatar = self.bot_data.avatar
-			self.bot_data.avatar = self.bot_data.random_avatars.pop()["veadotube_name"]
-			if len(self.bot_data.random_avatars) == 0:
-				self.bot_data.queue_random_avatars(AVATARS)
-
-			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar["veadotube_name"]}"')
-			await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(avatar["description"])) # type: ignore
-			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
+			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, ""))
+		elif payload.reward.id == REDEEMS["HeadPats (WIP)"]["id"]:
+			await self.queue_action(AvatarAction(ActionType.HEADPATS, self.bot_data.avatar))
+		elif payload.reward.id == REDEEMS["Hug!"]["id"]:
+			await self.queue_action(AvatarAction(ActionType.HUG, self.bot_data.avatar))
 		elif payload.reward.id == REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			for redeem in REDEEMS.values():
