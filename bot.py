@@ -5,12 +5,14 @@ import subprocess
 import datetime
 import keyboard
 import asyncio
+import re
 from collections import deque
 
 import twitchio
 from twitchio import eventsub
 from twitchio.ext import commands, routines
 
+import trello
 from bot_data import BotData
 from avatar_action import ActionType, AvatarAction
 from commands_rules import CommandsRules
@@ -79,6 +81,8 @@ class Bot(commands.Bot):
 		#await user.update_custom_reward(REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
 
 		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self]) # type: ignore
+
+		self.bot_data.current_queue_size = len(trello.get_trello_queue())
 
 		LOGGER.info("Finished setup hook!")
 
@@ -272,6 +276,20 @@ class CommandsChat(commands.Component):
 async def randomize_connection_offline(bot: Bot):
 	user = bot.create_partialuser(user_id=OWNER_ID)
 	#await user.update_custom_reward(REDEEMS["ConnectionOffline"]["id"], cost=random.randint(100000000, 999999999))
+
+@routines.routine(delta=datetime.timedelta(seconds=2), wait_first=True)
+async def poll_trello_queue(bot: Bot):
+	user = bot.create_partialuser(user_id=OWNER_ID)
+	new_queue = trello.get_trello_queue()
+	if len(new_queue) != bot.bot_data.current_queue_size:
+		if len(new_queue) > bot.bot_data.current_queue_size:
+			latest_donor = new_queue[-1]["name"]
+			await user.send_announcement(moderator=bot.user, message=f"{latest_donor} has been added to the queue.", color="orange") # type: ignore
+
+		current_stream_title = (await user.fetch_channel_info()).title
+		if "queue size" in current_stream_title:
+			await user.modify_channel(title=re.sub(r"\[\d+\]", f"[{len(new_queue)}]", current_stream_title))
+			bot.bot_data.current_queue_size = len(new_queue)
 
 def increment_undo(bot: Bot):
 	bot.bot_data.undo_count += 1

@@ -18,8 +18,9 @@ def main() -> None:
 			await bot.start()
 
 	try:
-		asyncio.run(runner())
 		bot.randomize_connection_offline.start()
+		bot.poll_trello_queue.start()
+		asyncio.run(runner())
 	except KeyboardInterrupt:
 		bot.LOGGER.warning("Shutting down due to Keyboard Interrupt...")
 

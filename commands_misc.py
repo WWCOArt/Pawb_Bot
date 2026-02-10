@@ -19,7 +19,7 @@ class CommandsMisc(commands.Component):
 	@commands.command()
 	async def distracted(self, context: commands.Context):
 		self.bot_data.distracted_count += 1
-		await context.send(f"Sierra has been distracted {self.bot_data.distracted_count} time{"s" if self.bot_data.distracted_count != 1 else ""} this stream.")
+		await context.send(f"Sierra has been distracted at least {self.bot_data.distracted_count} time{"s" if self.bot_data.distracted_count != 1 else ""} this stream.")
 
 	@commands.command()
 	async def undocount(self, context: commands.Context):

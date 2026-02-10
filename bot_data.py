@@ -7,6 +7,7 @@ import utility_functions
 
 class BotData():
 	def __init__(self, avatars: dict):
+		self.current_queue_size = 0
 		self.bless_count = 0
 		self.undo_count = 0
 		self.distracted_count = 0
