@@ -86,13 +86,11 @@ class Bot(commands.Bot):
 
 		LOGGER.info("Finished setup hook!")
 
-	async def close(self, **options):
+	def shut_down(self):
 		self.bot_data.database.close()
 
 		user = self.create_partialuser(user_id=OWNER_ID)
 		await user.send_message(sender=self.user, message="PawbOS 2.0 shutting down.") # type: ignore
-
-		await super().close(**options)
 
 	def process_input(self, inp: str):
 		print(inp)

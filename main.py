@@ -22,6 +22,7 @@ def main() -> None:
 		bot.poll_trello_queue.start()
 		asyncio.run(runner())
 	except KeyboardInterrupt:
+		b.shut_down()
 		bot.LOGGER.warning("Shutting down due to Keyboard Interrupt...")
 
 if __name__ == "__main__":
