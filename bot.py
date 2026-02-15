@@ -8,6 +8,8 @@ import asyncio
 import re
 from collections import deque
 
+VERSION_NUMBER = "2.0"
+
 import twitchio
 from twitchio import eventsub
 from twitchio.ext import commands, routines
@@ -75,22 +77,31 @@ class Bot(commands.Bot):
 		await self.add_component(CommandsMisc(self.bot_data))
 		await self.add_component(CommandsCharacters(self.bot_data))
 
-		user = self.create_partialuser(user_id=OWNER_ID)
-		await user.send_message(sender=self.user, message="PawbOS 2.0 booting up.") # type: ignore
-
 		#await user.update_custom_reward(REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
 
 		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self]) # type: ignore
-
 		self.bot_data.current_queue_size = len(trello.get_trello_queue())
 
 		LOGGER.info("Finished setup hook!")
+
+		user = self.create_partialuser(user_id=OWNER_ID)
+		await user.send_message(sender=self.user, message=f"PawbOS {VERSION_NUMBER} booting up.") # type: ignore
+		await asyncio.sleep(0.5)
+		await user.send_message(sender=self.user, message="PawBot terminal online.") # type: ignore
+		await asyncio.sleep(0.5)
+		await user.send_message(sender=self.user, message="Avatar system online.") # type: ignore
+		await asyncio.sleep(1.0)
+		await user.send_message(sender=self.user, message="Video feed online.") # type: ignore
+		await asyncio.sleep(1.0)
+		await user.send_message(sender=self.user, message="Audio feed online.") # type: ignore
+		await asyncio.sleep(1.0)
+		await user.send_message(sender=self.user, message="Low bandwidth detected. Searching for connection...") # type: ignore
 
 	def shut_down(self):
 		self.bot_data.database.close()
 
 		user = self.create_partialuser(user_id=OWNER_ID)
-		await user.send_message(sender=self.user, message="PawbOS 2.0 shutting down.") # type: ignore
+		await user.send_message(sender=self.user, message="PawbOS shutting down.") # type: ignore
 
 	def process_input(self, inp: str):
 		print(inp)
