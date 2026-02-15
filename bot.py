@@ -87,7 +87,7 @@ class Bot(commands.Bot):
 		user = self.create_partialuser(user_id=OWNER_ID)
 		await user.send_message(sender=self.user, message=f"PawbOS {VERSION_NUMBER} booting up.") # type: ignore
 		await asyncio.sleep(0.5)
-		await user.send_message(sender=self.user, message="PawBot terminal online.") # type: ignore
+		await user.send_message(sender=self.user, message="PawbBot terminal online.") # type: ignore
 		await asyncio.sleep(0.5)
 		await user.send_message(sender=self.user, message="Avatar system online.") # type: ignore
 		await asyncio.sleep(1.0)
