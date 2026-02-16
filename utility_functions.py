@@ -98,4 +98,4 @@ def get_mainecoone_name(person_talking: str) -> str:
 
 def is_full_moon() -> bool:
 	phase = moon.phase(datetime.datetime.now())
-	return phase > 12.0 and phase < 16.0
+	return phase > 13.4 and phase < 14.6
