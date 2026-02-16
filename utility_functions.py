@@ -2,6 +2,7 @@ import datetime
 import random
 import requests
 import json
+from astral import moon
 from num2words import num2words
 from CnyZodiac import ChineseNewYearZodiac as cnyz
 
@@ -94,3 +95,7 @@ def get_mainecoone_name(person_talking: str) -> str:
 			return "Tree"
 		else:
 			return "Long Night"
+
+def is_full_moon() -> bool:
+	phase = moon.phase(datetime.datetime.now())
+	return phase > 12.0 and phase < 16.0
