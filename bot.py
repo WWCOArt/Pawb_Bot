@@ -134,9 +134,13 @@ class CommandsChat(commands.Component):
 		self.bot_data = bot_data
 		self.action_queue = deque[AvatarAction]()
 
+	def get_avatar_info_by_veadotube_name(self, veadotube_name: str) -> dict:
+		return [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name][0]
+
 	async def avatar_transition(self, avatar: str, is_switched_to: bool):
-		redeems_disabled = AVATARS[avatar]["disable_redeems"]
-		redeems_enabled = AVATARS[avatar]["enable_redeems"]
+		avatar_info = self.get_avatar_info_by_veadotube_name(avatar)
+		redeems_disabled = avatar_info["disable_redeems"]
+		redeems_enabled = avatar_info["enable_redeems"]
 
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 		for redeem in redeems_disabled:
@@ -153,7 +157,7 @@ class CommandsChat(commands.Component):
 		action = self.action_queue.popleft()
 		if action.type == ActionType.AVATAR_CHANGE:
 			previous_avatar = self.bot_data.avatar
-			avatar_info = [av for av in AVATARS.values() if av["veadotube_name"] == action.avatar][0]
+			avatar_info = self.get_avatar_info_by_veadotube_name(action.avatar)
 			avatar_name = action.avatar
 			if avatar_name == "Kat Avatar":
 				self.bot_data.avatar = random.choices(["katMale", "katFemale", "katNanite"], weights=[90, 90, 20], k=1)[0]
