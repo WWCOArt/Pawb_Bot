@@ -139,8 +139,8 @@ class CommandsChat(commands.Component):
 
 	async def avatar_transition(self, avatar: str, is_switched_to: bool):
 		avatar_info = self.get_avatar_info_by_veadotube_name(avatar)
-		redeems_disabled = avatar_info["disable_redeems"]
-		redeems_enabled = avatar_info["enable_redeems"]
+		redeems_disabled = avatar_info.get("disable_redeems", [])
+		redeems_enabled = avatar_info.get("enable_redeems", [])
 
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 		for redeem in redeems_disabled:
