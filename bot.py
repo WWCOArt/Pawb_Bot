@@ -153,7 +153,7 @@ class CommandsChat(commands.Component):
 		action = self.action_queue.popleft()
 		if action.type == ActionType.AVATAR_CHANGE:
 			previous_avatar = self.bot_data.avatar
-			avatar_info = AVATARS[action.avatar]
+			avatar_info = [av for av in AVATARS.values() if av["veadotube_name"] == action.avatar][0]
 			avatar_name = action.avatar
 			if avatar_name == "Kat Avatar":
 				self.bot_data.avatar = random.choices(["katMale", "katFemale", "katNanite"], weights=[90, 90, 20], k=1)[0]
@@ -225,7 +225,7 @@ class CommandsChat(commands.Component):
 					await user.update_custom_reward(redeem["id"], cost=new_cost)
 
 		if payload.reward.title in AVATARS:
-			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, payload.reward.title))
+			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS[payload.reward.title]["veadotube_name"]))
 		elif payload.reward.id == REDEEMS["Random Avatar"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, ""))
 		elif payload.reward.id == REDEEMS["HeadPats (WIP)"]["id"]:
