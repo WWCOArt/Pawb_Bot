@@ -97,7 +97,7 @@ class Bot(commands.Bot):
 		await asyncio.sleep(1.0)
 		await user.send_message(sender=self.user, message="Low bandwidth detected. Searching for connection...") # type: ignore
 
-	def shut_down(self):
+	async def shut_down(self):
 		self.bot_data.database.close()
 
 		user = self.create_partialuser(user_id=OWNER_ID)

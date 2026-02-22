@@ -16,13 +16,14 @@ def main() -> None:
 	async def runner() -> None:
 		async with b as bot:
 			await bot.start()
+			await bot.shutdown()
 
 	try:
+		asyncio.run(runner())
 		bot.randomize_connection_offline.start()
 		bot.poll_trello_queue.start()
-		asyncio.run(runner())
+		print("test")
 	except KeyboardInterrupt:
-		b.shut_down()
 		bot.LOGGER.warning("Shutting down due to Keyboard Interrupt...")
 
 if __name__ == "__main__":
