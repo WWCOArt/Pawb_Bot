@@ -183,7 +183,7 @@ class CommandsChat(commands.Component):
 		else:
 			pass
 
-		await asyncio.sleep(5)
+		await asyncio.sleep(action.duration)
 		self.bot_data.action_queue.popleft()
 		if len(self.bot_data.action_queue) > 0:
 			await self.advance_action_queue()
