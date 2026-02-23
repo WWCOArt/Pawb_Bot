@@ -7,6 +7,7 @@ class ActionType(Enum):
 	HUG = 3
 
 class AvatarAction:
-	def __init__(self, type_: ActionType, avatar: str):
+	def __init__(self, type_: ActionType, avatar: str, duration: float):
 		self.type = type_
 		self.avatar = avatar
+		self.duration = duration

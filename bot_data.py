@@ -2,6 +2,8 @@ import json
 import random
 import sqlite3
 import re
+from collections import deque
+from avatar_action import AvatarAction
 
 import utility_functions
 
@@ -17,6 +19,8 @@ class BotData():
 		self.highest_hype_level = 0
 		self.best_button_broken = False
 		self.greetings_said = set()
+
+		self.action_queue = deque[AvatarAction]()
 
 		self.database = sqlite3.connect("bot_data.db")
 		self.database_cursor = self.database.cursor()

@@ -45,6 +45,8 @@ with open("greetings.json", encoding="utf8") as greetings_file:
 
 LOGGER: logging.Logger = logging.getLogger("Bot")
 
+########################################################################################################################
+
 class Bot(commands.Bot):
 	def __init__(self) -> None:
 		self.bot_data = BotData(AVATARS)
@@ -62,10 +64,14 @@ class Bot(commands.Bot):
 	async def setup_hook(self) -> None:
 		# Listen for messages on our channel...
 		# You need appropriate scopes, see the docs on authenticating for more info...
+		payload_online = eventsub.StreamOnlineSubscription(broadcaster_user_id=self.owner_id)
+		payload_offline = eventsub.StreamOfflineSubscription(broadcaster_user_id=self.owner_id)
 		payload_chatmessage = eventsub.ChatMessageSubscription(broadcaster_user_id=self.owner_id, user_id=self.bot_id)
 		payload_channelpoints = eventsub.ChannelPointsRedeemAddSubscription(broadcaster_user_id=self.owner_id)
 		payload_hypetrain_progress = eventsub.HypeTrainProgressSubscription(broadcaster_user_id=self.owner_id)
 		payload_hypetrain_end = eventsub.HypeTrainEndSubscription(broadcaster_user_id=self.owner_id)
+		await self.subscribe_websocket(payload=payload_online)
+		await self.subscribe_websocket(payload=payload_offline)
 		await self.subscribe_websocket(payload=payload_chatmessage)
 		await self.subscribe_websocket(payload=payload_channelpoints)
 		await self.subscribe_websocket(payload=payload_hypetrain_progress)
@@ -87,24 +93,8 @@ class Bot(commands.Bot):
 
 		LOGGER.info("Finished setup hook!")
 
-		user = self.create_partialuser(user_id=OWNER_ID)
-		await user.send_message(sender=self.user, message=f"PawbOS {VERSION_NUMBER} booting up.") # type: ignore
-		await asyncio.sleep(0.5)
-		await user.send_message(sender=self.user, message="PawbBot terminal online.") # type: ignore
-		await asyncio.sleep(0.5)
-		await user.send_message(sender=self.user, message="Avatar system online.") # type: ignore
-		await asyncio.sleep(1.0)
-		await user.send_message(sender=self.user, message="Video feed online.") # type: ignore
-		await asyncio.sleep(1.0)
-		await user.send_message(sender=self.user, message="Audio feed online.") # type: ignore
-		await asyncio.sleep(1.0)
-		await user.send_message(sender=self.user, message="Low bandwidth detected. Searching for connection...") # type: ignore
-
 	async def shut_down(self):
 		self.bot_data.database.close()
-
-		user = self.create_partialuser(user_id=OWNER_ID)
-		await user.send_message(sender=self.user, message="PawbOS shutting down.") # type: ignore
 
 	def process_input(self, inp: str):
 		print(inp)
@@ -120,19 +110,26 @@ class Bot(commands.Bot):
 		new_queue = trello.get_trello_queue()
 		if len(new_queue) != self.bot_data.current_queue_size:
 			if len(new_queue) > self.bot_data.current_queue_size:
-				latest_donor = new_queue[-1]["name"]
-				await user.send_announcement(moderator=self.user, message=f"{latest_donor} has been added to the queue.", color="orange") # type: ignore
+				latest_donor = new_queue[-1]["name"].split("###")
+				if len(latest_donor) > 1:
+					if latest_donor[1].isdigit():
+						await user.send_message(sender=self.user, message=f"{latest_donor[0]}, you submitted a donation of less than $25, but you currently have a cooldown of {latest_donor[1]} days on getting an under $25 dono. You will be refunded.") # type: ignore
+					else:
+						await user.send_message(sender=self.user, message=f"{latest_donor[0]}, you are already on the queue. You will be refunded.") # type: ignore
+				else:
+					await user.send_announcement(moderator=self.user, message=f"{latest_donor[0]} has been added to the queue.", color="orange") # type: ignore
 
 			current_stream_title = (await user.fetch_channel_info()).title
 			if "queue size" in current_stream_title:
 				await user.modify_channel(title=re.sub(r"\[\d+\]", f"[{len(new_queue)}]", current_stream_title))
 				self.bot_data.current_queue_size = len(new_queue)
 
+########################################################################################################################
+
 class CommandsChat(commands.Component):
 	def __init__(self, bot: Bot, bot_data: BotData):
 		self.bot = bot
 		self.bot_data = bot_data
-		self.action_queue = deque[AvatarAction]()
 
 	def get_avatar_info_by_veadotube_name(self, veadotube_name: str) -> dict:
 		return [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name][0]
@@ -143,18 +140,19 @@ class CommandsChat(commands.Component):
 		redeems_enabled = avatar_info.get("enable_redeems", [])
 
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
-		for redeem in redeems_disabled:
-			await user.update_custom_reward(REDEEMS[redeem]["id"], enabled=not is_switched_to)
+		#for redeem in redeems_disabled:
+			#await user.update_custom_reward(REDEEMS[redeem]["id"], enabled=not is_switched_to)
 		
-		for redeem in redeems_enabled:
-			await user.update_custom_reward(REDEEMS[redeem]["id"], enabled=is_switched_to)
+		#for redeem in redeems_enabled:
+			#await user.update_custom_reward(REDEEMS[redeem]["id"], enabled=is_switched_to)
 
 	async def update_redeem_availability(self, previous_avatar: str, new_avatar: str):
 		await self.avatar_transition(previous_avatar, False)
 		await self.avatar_transition(new_avatar, True)
 
 	async def advance_action_queue(self):
-		action = self.action_queue.popleft()
+		#action = self.bot_data.action_queue.popleft()
+		action = self.bot_data.action_queue[0]
 		if action.type == ActionType.AVATAR_CHANGE:
 			previous_avatar = self.bot_data.avatar
 			avatar_info = self.get_avatar_info_by_veadotube_name(action.avatar)
@@ -186,13 +184,36 @@ class CommandsChat(commands.Component):
 			pass
 
 		await asyncio.sleep(5)
-		if len(self.action_queue) > 0:
+		self.bot_data.action_queue.popleft()
+		if len(self.bot_data.action_queue) > 0:
 			await self.advance_action_queue()
 
 	async def queue_action(self, action: AvatarAction):
-		self.action_queue.append(action)
-		if len(self.action_queue) == 1:
+		self.bot_data.action_queue.append(action)
+		if len(self.bot_data.action_queue) == 1:
 			await self.advance_action_queue()
+
+	####################################################################################################################
+
+	@commands.Component.listener()
+	async def event_stream_online(self, payload: twitchio.StreamOnline):
+		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		await user.send_message(sender=self.user, message=f"PawbOS {VERSION_NUMBER} booting up.") # type: ignore
+		await asyncio.sleep(0.5)
+		await user.send_message(sender=self.user, message="PawbBot terminal online.") # type: ignore
+		await asyncio.sleep(0.5)
+		await user.send_message(sender=self.user, message="Avatar system online.") # type: ignore
+		await asyncio.sleep(1.0)
+		await user.send_message(sender=self.user, message="Video feed online.") # type: ignore
+		await asyncio.sleep(1.0)
+		await user.send_message(sender=self.user, message="Audio feed online.") # type: ignore
+		await asyncio.sleep(1.0)
+		await user.send_message(sender=self.user, message="Low bandwidth detected. Searching for connection...") # type: ignore
+
+	@commands.Component.listener()
+	async def event_stream_offline(self, payload: twitchio.StreamOffline):
+		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		await user.send_message(sender=self.user, message="PawbOS shutting down.") # type: ignore
 
 	@commands.Component.listener()
 	async def event_message(self, payload: twitchio.ChatMessage):
@@ -219,7 +240,6 @@ class CommandsChat(commands.Component):
 
 	@commands.Component.listener()
 	async def event_custom_redemption_add(self, payload: twitchio.ChannelPointsRedemptionAdd):
-		print(payload.reward.title)
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 
 		if self.bot_data.silly_mode:
@@ -229,13 +249,15 @@ class CommandsChat(commands.Component):
 					await user.update_custom_reward(redeem["id"], cost=new_cost)
 
 		if payload.reward.title in AVATARS:
-			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS[payload.reward.title]["veadotube_name"]))
+			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS[payload.reward.title]["veadotube_name"], 2.0))
 		elif payload.reward.id == REDEEMS["Random Avatar"]["id"]:
-			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, ""))
-		elif payload.reward.id == REDEEMS["HeadPats (WIP)"]["id"]:
-			await self.queue_action(AvatarAction(ActionType.HEADPATS, self.bot_data.avatar))
-		elif payload.reward.id == REDEEMS["Hug!"]["id"]:
-			await self.queue_action(AvatarAction(ActionType.HUG, self.bot_data.avatar))
+			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0))
+		elif payload.reward.id == REDEEMS["HeadPats (WIP)"]["id"] or payload.reward.id == REDEEMS["Hug!"]["id"]:
+			is_hug = payload.reward.id == REDEEMS["Hug!"]["id"]
+			all_interact_timings = self.get_avatar_info_by_veadotube_name(self.bot_data.avatar).get("interact_timings", 2.0)
+			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.0)
+			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.0))
+			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration))
 		elif payload.reward.id == REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			for redeem in REDEEMS.values():
@@ -248,7 +270,6 @@ class CommandsChat(commands.Component):
 			self.bot_data.store_variable("nothing_cost", nothing_cost + 1)
 			await user.update_custom_reward(REDEEMS["This Redeem does nothing"]["id"], cost=nothing_cost)
 		elif payload.reward.id == REDEEMS["Create a Fox Rule!"]["id"]:
-			print("test")
 			self.bot_data.add_foxrule(payload.user.display_name, payload.user_input) # type: ignore
 			await user.send_message(sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
 		elif payload.reward.id == REDEEMS["First!"]["id"]:
@@ -306,6 +327,8 @@ class CommandsChat(commands.Component):
 			whom = context.message.text.split()[1] # type: ignore
 			user = self.bot.create_partialuser(user_id=OWNER_ID)
 			await user.send_shoutout(to_broadcaster=whom, moderator=context.author)
+
+########################################################################################################################
 
 def increment_undo(bot: Bot):
 	bot.bot_data.undo_count += 1
