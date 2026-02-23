@@ -151,7 +151,6 @@ class CommandsChat(commands.Component):
 		await self.avatar_transition(new_avatar, True)
 
 	async def advance_action_queue(self):
-		#action = self.bot_data.action_queue.popleft()
 		action = self.bot_data.action_queue[0]
 		if action.type == ActionType.AVATAR_CHANGE:
 			previous_avatar = self.bot_data.avatar
@@ -224,6 +223,27 @@ class CommandsChat(commands.Component):
 
 		if payload.chatter.name == "thezaffrehammer" and "bless" in payload.text.lower():
 			self.bot_data.bless_count += 1
+
+		if payload.chatter.name == "runary" and "yeets the zaffre" in payload.text.lower():
+			message = random.choices(list(enumerate([
+				"The skunk has been yeeted.",
+				"The skunk has been yeeted through a portal.",
+				"The skunk has been yeeted through a broken portal.",
+				"The skunk has been yeeted into the past.",
+				"The skunk has been yeeted into the future.",
+				"The skunk has dodged the yeet.",
+				"The chimera has been yeeted.",
+				"Countered! Zaffre yeets Runary instead!",
+				"The skunk has been greeted.",
+				"The skunk has been gently tossed about 5 feet.",
+				"Runary got too excited and tripped.",
+				"7H3 5KUNK H45 B33N Y3373D.",
+			])), weights=[30, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], k=1)[0]
+
+			await user.send_message(sender=self.bot.user, message=message[1]) # type: ignore
+			if message[0] == 1:
+				await asyncio.sleep(120)
+				await user.send_message(sender=self.bot.user, message="The skunk has been yeeted out of a portal and lands at runary's feet.") # type: ignore
 
 		if payload.chatter.name in GREETINGS and not payload.chatter.name in self.bot_data.greetings_said:
 			if payload.chatter.name == "flomuffin":
