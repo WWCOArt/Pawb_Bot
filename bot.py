@@ -194,6 +194,20 @@ class CommandsChat(commands.Component):
 
 	####################################################################################################################
 
+	# Stream Startup. Add the following when time permitted:
+	# Start 1 hour wait to activate planks
+	# Set dragonstage to 0 (can we just do a 'pressure reset' function?)
+	# Trigger Sphinx Avatar
+	# Check if first stream for today. 
+	# reset the First Redeem 
+	# Future stuff. Set plush to idle. 
+	# Start the Searching For connection Redeem.
+	# Reset the welcome string if first stream of day.
+	# disable any active hype dragons. Set current hype level to 0
+	# set distraction and undo to 0
+	# Ask diane if this would be under the same async def above the messages, or in a separate one.
+
+	# Pawb_bot startup messages
 	@commands.Component.listener()
 	async def event_stream_online(self, payload: twitchio.StreamOnline):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
@@ -209,11 +223,13 @@ class CommandsChat(commands.Component):
 		await asyncio.sleep(1.0)
 		await user.send_message(sender=self.user, message="Low bandwidth detected. Searching for connection...") # type: ignore
 
+	# pawb_bot shutdown messages
 	@commands.Component.listener()
 	async def event_stream_offline(self, payload: twitchio.StreamOffline):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 		await user.send_message(sender=self.user, message="PawbOS shutting down.") # type: ignore
 
+	# listening for chat messages
 	@commands.Component.listener()
 	async def event_message(self, payload: twitchio.ChatMessage):
 		if payload.chatter.user == self.bot.user:
@@ -221,9 +237,11 @@ class CommandsChat(commands.Component):
 		
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 
+		#Zaffre Bless
 		if payload.chatter.name == "thezaffrehammer" and "bless" in payload.text.lower():
 			self.bot_data.bless_count += 1
 
+		#Runary Yeeting the skunk.
 		if payload.chatter.name == "runary" and "yeets the zaffre" in payload.text.lower():
 			message = random.choices(list(enumerate([
 				"The skunk has been yeeted.",
@@ -245,6 +263,7 @@ class CommandsChat(commands.Component):
 				await asyncio.sleep(120)
 				await user.send_message(sender=self.bot.user, message="The skunk has been yeeted out of a portal and lands at runary's feet.") # type: ignore
 
+		# User greetings.
 		if payload.chatter.name in GREETINGS and not payload.chatter.name in self.bot_data.greetings_said:
 			if payload.chatter.name == "flomuffin":
 				self.bot_data.increment_variable("door_count")
@@ -258,16 +277,20 @@ class CommandsChat(commands.Component):
 
 			self.bot_data.greetings_said.add(payload.chatter.name)
 
+	# channel point stuff
 	@commands.Component.listener()
 	async def event_custom_redemption_add(self, payload: twitchio.ChannelPointsRedemptionAdd):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 
+		# silly mode
 		if self.bot_data.silly_mode:
 			for redeem in REDEEMS.values():
 				if redeem["silly"]:
 					new_cost = random.randrange(2, 999)
 					await user.update_custom_reward(redeem["id"], cost=new_cost)
 
+		# avatar swaps and interacts.
+		# Add in the custom ones, Sierra. ###
 		if payload.reward.title in AVATARS:
 			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS[payload.reward.title]["veadotube_name"], 2.0))
 		elif payload.reward.id == REDEEMS["Random Avatar"]["id"]:
@@ -296,6 +319,7 @@ class CommandsChat(commands.Component):
 			self.bot_data.increment_first_count(payload.user.name) # type: ignore
 			await user.update_custom_reward(REDEEMS["First!"]["id"], title=f"{payload.user.display_name} was first this stream!", prompt=f"They've been first {self.bot_data.get_first_count(payload.user.name)} times!") # type: ignore
 
+	# hype dragons
 	@commands.Component.listener()
 	async def event_hype_train_progress(self, payload: twitchio.HypeTrainProgress):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
@@ -320,6 +344,7 @@ class CommandsChat(commands.Component):
 			self.bot_data.current_hype_level = payload.level
 			self.bot_data.highest_hype_level = payload.level
 
+	# Hype train end
 	@commands.Component.listener()
 	async def event_hype_train_end(self, payload: twitchio.HypeTrainEnd):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
@@ -341,6 +366,7 @@ class CommandsChat(commands.Component):
 
 		self.bot_data.current_hype_level = 0
 
+	# I think this is the shoutout
 	@commands.command(aliases=["so"])
 	async def shoutout(self, context: commands.Context):
 		if context.author.moderator or context.author.broadcaster:	 # type: ignore
