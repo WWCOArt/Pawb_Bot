@@ -197,7 +197,7 @@ class CommandsChat(commands.Component):
 	# Stream Startup. Add the following when time permitted:
 	# Start 1 hour wait to activate planks
 	# Set dragonstage to 0 (can we just do a 'pressure reset' function?)
-	# Trigger Sphinx Avatar
+	# Trigger Sphinx Avatar 
 	# Check if first stream for today. 
 	# reset the First Redeem 
 	# Future stuff. Set plush to idle. 
@@ -206,7 +206,6 @@ class CommandsChat(commands.Component):
 	# disable any active hype dragons. Set current hype level to 0
 	# set distraction and undo to 0
 	# Ask diane if this would be under the same async def above the messages, or in a separate one.
-
 	# Pawb_bot startup messages
 	@commands.Component.listener()
 	async def event_stream_online(self, payload: twitchio.StreamOnline):
@@ -289,17 +288,18 @@ class CommandsChat(commands.Component):
 					new_cost = random.randrange(2, 999)
 					await user.update_custom_reward(redeem["id"], cost=new_cost)
 
-		# avatar swaps and interacts.
-		# Add in the custom ones, Sierra. ###
+		# When redeem is triggered, first check if the title matches any of the avatar redeems. If so, add the avatar swap to the queue.
 		if payload.reward.title in AVATARS:
 			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS[payload.reward.title]["veadotube_name"], 2.0))
+		#if it's not in the avatar list, compare to other redeems
 		elif payload.reward.id == REDEEMS["Random Avatar"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0))
+		# headpats and hugs.
 		elif payload.reward.id == REDEEMS["HeadPats (WIP)"]["id"] or payload.reward.id == REDEEMS["Hug!"]["id"]:
 			is_hug = payload.reward.id == REDEEMS["Hug!"]["id"]
-			all_interact_timings = self.get_avatar_info_by_veadotube_name(self.bot_data.avatar).get("interact_timings", 2.0)
-			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.0)
-			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.0))
+			all_interact_timings = self.get_avatar_info_by_veadotube_name(self.bot_data.avatar).get("interact_timings", 2.5)
+			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.5)
+			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
 			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration))
 		elif payload.reward.id == REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
