@@ -6,6 +6,7 @@ import datetime
 import keyboard
 import asyncio
 import re
+import requests
 from collections import deque
 
 VERSION_NUMBER = "2.0"
@@ -13,6 +14,8 @@ VERSION_NUMBER = "2.0"
 import twitchio
 from twitchio import eventsub
 from twitchio.ext import commands, routines
+from prompt_toolkit import PromptSession
+from prompt_toolkit.patch_stdout import patch_stdout
 
 import trello
 from bot_data import BotData
@@ -28,6 +31,7 @@ CLIENT_ID = bot_secrets_json["client_id"]
 CLIENT_SECRET = bot_secrets_json["client_secret"]
 BOT_ID = bot_secrets_json["bot_id"]
 OWNER_ID = bot_secrets_json["owner_id"]
+CLOUD_WEBHOOK_URL = bot_secrets_json["cloud_webhook_url"]
 bot_secrets.close()
 
 with open("config.json", encoding="utf8") as config_data:
@@ -44,6 +48,11 @@ with open("greetings.json", encoding="utf8") as greetings_file:
 	GREETINGS = json.load(greetings_file)
 
 LOGGER: logging.Logger = logging.getLogger("Bot")
+
+########################################################################################################################
+
+def get_avatar_info_by_veadotube_name(veadotube_name: str) -> dict:
+		return [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name][0]
 
 ########################################################################################################################
 
@@ -93,10 +102,38 @@ class Bot(commands.Bot):
 
 		LOGGER.info("Finished setup hook!")
 
+		# streamer command input
+		session = PromptSession()
+		while True:
+			with patch_stdout():
+				inp = await session.prompt_async("> ")
+				await self.process_input(inp)
+
 	async def shut_down(self):
 		self.bot_data.database.close()
 
-	def process_input(self, inp: str):
+	async def process_input(self, inp: str):
+		user = self.create_partialuser(user_id=OWNER_ID)
+
+		input_split = inp.split()
+		command = input_split[0].lower().lstrip("/! \t")
+		if command == "say":
+			await user.send_message(sender=self.user, message=" ".join(input_split[1:])) # type: ignore
+		elif command == "best" or command == "bestbutton":
+			await user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary") # type: ignore
+		elif command == "next":
+			requests.post(f"{CLOUD_WEBHOOK_URL}?advance_queue")
+			queue = trello.get_trello_queue()
+			await user.send_announcement(moderator=self.user, message=f"{queue[0]["name"]} is up!") # type: ignore
+		elif command == "avatar":
+			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, input_split[1], 2.0)) # type: ignore
+		elif command == "headpats" or command == "hug":
+			is_hug = command == "hug"
+			all_interact_timings = get_avatar_info_by_veadotube_name(self.bot_data.avatar).get("interact_timings", 2.5)
+			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get(command, 2.5)
+			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(("default", 2.5))
+			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration)) # type: ignore
+
 		print(inp)
 
 	@routines.routine(delta=datetime.timedelta(seconds=2))
@@ -131,11 +168,8 @@ class CommandsChat(commands.Component):
 		self.bot = bot
 		self.bot_data = bot_data
 
-	def get_avatar_info_by_veadotube_name(self, veadotube_name: str) -> dict:
-		return [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name][0]
-
 	async def avatar_transition(self, avatar: str, is_switched_to: bool):
-		avatar_info = self.get_avatar_info_by_veadotube_name(avatar)
+		avatar_info = get_avatar_info_by_veadotube_name(avatar)
 		redeems_disabled = avatar_info.get("disable_redeems", [])
 		redeems_enabled = avatar_info.get("enable_redeems", [])
 
@@ -154,7 +188,7 @@ class CommandsChat(commands.Component):
 		action = self.bot_data.action_queue[0]
 		if action.type == ActionType.AVATAR_CHANGE:
 			previous_avatar = self.bot_data.avatar
-			avatar_info = self.get_avatar_info_by_veadotube_name(action.avatar)
+			avatar_info = get_avatar_info_by_veadotube_name(action.avatar)
 			avatar_name = action.avatar
 			if avatar_name == "Kat Avatar":
 				self.bot_data.avatar = random.choices(["katMale", "katFemale", "katNanite"], weights=[90, 90, 20], k=1)[0]
@@ -297,7 +331,7 @@ class CommandsChat(commands.Component):
 		# headpats and hugs.
 		elif payload.reward.id == REDEEMS["HeadPats (WIP)"]["id"] or payload.reward.id == REDEEMS["Hug!"]["id"]:
 			is_hug = payload.reward.id == REDEEMS["Hug!"]["id"]
-			all_interact_timings = self.get_avatar_info_by_veadotube_name(self.bot_data.avatar).get("interact_timings", 2.5)
+			all_interact_timings = get_avatar_info_by_veadotube_name(self.bot_data.avatar).get("interact_timings", 2.5)
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
 			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration))
