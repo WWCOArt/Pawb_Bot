@@ -49,7 +49,7 @@ class CommandsRules(commands.Component):
 
 	@commands.command()
 	async def zaffrerule(self, context: commands.Context):
-		await context.send(f"Zaffre has said Bless {self.bot_data.bless_count} times this stream.")
+		await context.send(f"Zaffre has said Bless {self.bot_data.get_variable("bless_count")} times this stream.")
 
 	@commands.command()
 	async def displacerrule(self, context: commands.Context):

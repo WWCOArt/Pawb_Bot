@@ -18,12 +18,13 @@ class CommandsMisc(commands.Component):
 
 	@commands.command()
 	async def distracted(self, context: commands.Context):
-		self.bot_data.distracted_count += 1
-		await context.send(f"Sierra has been distracted at least {self.bot_data.distracted_count} time{"s" if self.bot_data.distracted_count != 1 else ""} this stream.")
+		new_count = self.bot_data.get_variable("distracted_count") + 1
+		await context.send(f"Sierra has been distracted at least {new_count} time{"s" if new_count != 1 else ""} this stream.")
+		self.bot_data.store_variable("distracted_count", new_count)
 
 	@commands.command()
 	async def undocount(self, context: commands.Context):
-		await context.send(f"Sierra has pressed ctrl+z {self.bot_data.undo_count} times this stream.")
+		await context.send(f"Sierra has pressed ctrl+z {self.bot_data.get_variable("undo_count")} times this stream.")
 
 	@commands.command()
 	async def throne(self, context: commands.Context):

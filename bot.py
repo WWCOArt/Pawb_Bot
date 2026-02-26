@@ -51,9 +51,13 @@ LOGGER: logging.Logger = logging.getLogger("Bot")
 
 ########################################################################################################################
 
+def get_current_avatar() -> str:
+	result = subprocess.Popen("veadotube -i 0 nodes stateEvents avatarSwap peek", stdout=subprocess.PIPE)
+	return result.stdout.read().decode() # type: ignore
+
 def get_avatar_info_by_veadotube_name(veadotube_name: str) -> dict:
-		matches = [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name]
-		return matches[0] if len(matches) > 0 else {}
+	matches = [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name]
+	return matches[0] if len(matches) > 0 else {}
 
 ########################################################################################################################
 
@@ -95,8 +99,23 @@ class Bot(commands.Bot):
 
 		user = self.create_partialuser(user_id=OWNER_ID)
 
-		#await user.update_custom_reward(REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
-		#await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=False)
+		# reset everything if this is a new stream day
+		last_start_time = self.bot_data.get_last_start_time()
+		current_time = datetime.datetime.now()
+		if last_start_time.month != current_time.month and last_start_time.day != current_time.day and last_start_time.year != current_time.year:
+			self.bot_data.store_variable("undo_count", 0)
+			self.bot_data.store_variable("bless_count", 0)
+			self.bot_data.store_variable("distracted_count", 0)
+			self.bot_data.store_variable("current_hype_level", 0)
+			self.bot_data.store_variable("highest_hype_level", 0)
+
+			#await user.update_custom_reward(REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
+			#await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=False)
+			#await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=False)
+			#await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=False)
+			#await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=False)
+
+		self.bot_data.update_last_start_time()
 
 		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self]) # type: ignore
 		self.bot_data.current_queue_size = len(trello.get_trello_queue())
@@ -139,7 +158,7 @@ class Bot(commands.Bot):
 				print('Missing parameters for command "avatar"')
 		elif command == "headpats" or command == "hug":
 			is_hug = command == "hug"
-			all_interact_timings = get_avatar_info_by_veadotube_name(self.bot_data.avatar).get("interact_timings", 2.5)
+			all_interact_timings = get_avatar_info_by_veadotube_name(get_current_avatar()).get("interact_timings", 2.5)
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get(command, 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(("default", 2.5))
 			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration)) # type: ignore
@@ -200,39 +219,45 @@ class CommandsChat(commands.Component):
 		await self.avatar_transition(new_avatar, True)
 
 	async def advance_action_queue(self):
+		await asyncio.sleep(2)
 		action = self.bot_data.action_queue[0]
 		if action.type == ActionType.AVATAR_CHANGE:
-			previous_avatar = self.bot_data.avatar
+			previous_avatar = get_current_avatar()
 			avatar_info = get_avatar_info_by_veadotube_name(action.avatar)
 			avatar_name = action.avatar
+			new_avatar = str()
 			if len(avatar_info) > 0:
 				if avatar_name == "Kat Avatar":
-					self.bot_data.avatar = random.choices(["katMale", "katFemale", "katNanite"], weights=[90, 90, 20], k=1)[0]
+					new_avatar = random.choices(["katMale", "katFemale", "katNanite"], weights=[90, 90, 20], k=1)[0]
 				elif avatar_name == "Gremlin":
-					if self.bot_data.avatar == "dragonSmall" or self.bot_data.avatar == "dragonOverload" or self.bot_data.avatar == "dragonMacro":
-						self.bot_data.avatar = "gremlinDragon"
+					if previous_avatar == "dragonSmall" or previous_avatar == "dragonOverload" or previous_avatar == "dragonMacro":
+						new_avatar = "gremlinDragon"
 					else:
-						self.bot_data.avatar = "gremlinSphinx"
+						new_avatar = "gremlinSphinx"
 				else:
-					self.bot_data.avatar = avatar_info["veadotube_name"]
+					new_avatar = avatar_info["veadotube_name"]
 
-				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar}"')
-				await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
+				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{new_avatar}"')
+				await self.update_redeem_availability(previous_avatar, new_avatar)
 		elif action.type == ActionType.RANDOM_AVATAR:
-			previous_avatar = self.bot_data.avatar
-			self.bot_data.avatar = self.bot_data.random_avatars.pop()["veadotube_name"]
+			previous_avatar = get_current_avatar()
+			new_avatar = self.bot_data.random_avatars.pop()
 			if len(self.bot_data.random_avatars) == 0:
 				self.bot_data.queue_random_avatars(AVATARS)
 
-			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar["veadotube_name"]}"')
-			await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(avatar["description"])) # type: ignore
-			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
+			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{new_avatar["veadotube_name"]}"')
+			await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(new_avatar["description"])) # type: ignore
+			await self.update_redeem_availability(previous_avatar, new_avatar["veadotube_name"])
 		elif action.type == ActionType.HEADPATS:
-			pass
+			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "headpats"')
 		else:
-			pass
+			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "hug"')
 
 		await asyncio.sleep(action.duration)
+		
+		if action.type == ActionType.HEADPATS or action.type == ActionType.HUG:
+			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "neutral"')
+
 		self.bot_data.action_queue.popleft()
 		if len(self.bot_data.action_queue) > 0:
 			await self.advance_action_queue()
@@ -253,7 +278,7 @@ class CommandsChat(commands.Component):
 	# Future stuff. Set plush to idle. 
 	# Start the Searching For connection Redeem. ⚠️ (Bot.setup_hook)
 	# Reset the welcome string if first stream of day.
-	# disable any active hype dragons. Set current hype level to 0
+	# disable any active hype dragons. Set current hype level to 0 ⚠️ (Bot.setup_hook)
 	# set distraction and undo to 0 ✅ (BotData.__init__)
 	# Ask diane if this would be under the same async def above the messages, or in a separate one.
 	# Pawb_bot startup messages ✅ (this function)
@@ -291,7 +316,7 @@ class CommandsChat(commands.Component):
 
 		#Zaffre Bless
 		if payload.chatter.name == "thezaffrehammer" and "bless" in payload.text.lower():
-			self.bot_data.bless_count += 1
+			self.bot_data.increment_variable("bless_count")
 
 		#Runary Yeeting the skunk.
 		if payload.chatter.name == "runary" and "yeets the zaffre" in payload.text.lower():
@@ -316,7 +341,7 @@ class CommandsChat(commands.Component):
 				await user.send_message(sender=self.bot.user, message="The skunk has been yeeted out of a portal and lands at runary's feet.") # type: ignore
 
 		# User greetings.
-		if payload.chatter.name in GREETINGS and not payload.chatter.name in self.bot_data.greetings_said:
+		if payload.chatter.name in GREETINGS and not self.bot_data.has_greeting_been_said(payload.chatter.name) # type: ignore
 			if payload.chatter.name == "flomuffin":
 				self.bot_data.increment_variable("door_count")
 
@@ -327,7 +352,7 @@ class CommandsChat(commands.Component):
 			else: # dictionary = pick greeting based on form
 				await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(GREETINGS[payload.chatter.name][self.bot_data.get_current_chatter_form(payload.chatter.name)]["greeting"])) # type: ignore
 
-			self.bot_data.greetings_said.add(payload.chatter.name)
+			self.bot_data.add_greeting_said(payload.chatter.name) # type: ignore
 
 	# channel point stuff
 	@commands.Component.listener()
@@ -350,10 +375,11 @@ class CommandsChat(commands.Component):
 		# headpats and hugs.
 		elif payload.reward.id == REDEEMS["HeadPats (WIP)"]["id"] or payload.reward.id == REDEEMS["Hug!"]["id"]:
 			is_hug = payload.reward.id == REDEEMS["Hug!"]["id"]
-			all_interact_timings = get_avatar_info_by_veadotube_name(self.bot_data.avatar).get("interact_timings", 2.5)
+			current_avatar = get_current_avatar()
+			all_interact_timings = get_avatar_info_by_veadotube_name(current_avatar).get("interact_timings", 2.5)
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
-			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration))
+			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, current_avatar, duration))
 		elif payload.reward.id == REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			for redeem in REDEEMS.values():
@@ -377,47 +403,50 @@ class CommandsChat(commands.Component):
 	async def event_hype_train_progress(self, payload: twitchio.HypeTrainProgress):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 
-		if payload.level > self.bot_data.current_hype_level:
+		current_hype_level = self.bot_data.get_variable("current_hype_level")
+		if payload.level > current_hype_level:
 			if payload.level == 1:
-				await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=True)
+				#await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=True)
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
 			elif payload.level == 2:
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 unlocked for rest of stream.") # type: ignore
 			elif payload.level == 3:
-				await user.update_custom_reward(REDEEMS["HypeDragon3"]["id"], enabled=True)
+				#await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=True)
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 3 unlocked.") # type: ignore
 			elif payload.level == 4:
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 3 unlocked for rest of stream.") # type: ignore
 			elif payload.level == 5:
-				await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=True)
+				#await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=True)
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 5 unlocked.") # type: ignore
 			elif payload.level >= 6:
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 5 unlocked for rest of stream.") # type: ignore
 
-			self.bot_data.current_hype_level = payload.level
-			self.bot_data.highest_hype_level = payload.level
+			self.bot_data.store_variable("current_hype_level", payload.level)
+			self.bot_data.store_variable("highest_hype_level", payload.level)
 
 	# Hype train end
 	@commands.Component.listener()
 	async def event_hype_train_end(self, payload: twitchio.HypeTrainEnd):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		current_level = self.bot_data.get_variable("current_hype_level")
+		highest_level = self.bot_data.get_variable("highest_hype_level")
 
-		if self.bot_data.highest_hype_level < 6:
-			await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=False)
-			if self.bot_data.current_hype_level > 4:
+		if highest_level < 6:
+			#await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=False)
+			if current_level > 4:
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 5 disabled.") # type: ignore
 
-		if self.bot_data.highest_hype_level < 4:
-			await user.update_custom_reward(REDEEMS["HypeDragon3"]["id"], enabled=False)
-			if self.bot_data.current_hype_level > 2:
+		if highest_level < 4:
+			#await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=False)
+			if current_level > 2:
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 3 disabled.") # type: ignore
 
-		if self.bot_data.highest_hype_level < 2:
-			await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=False)
-			if self.bot_data.current_hype_level > 0:
+		if highest_level < 2:
+			#await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=False)
+			if current_level > 0:
 				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 disabled.") # type: ignore
 
-		self.bot_data.current_hype_level = 0
+		self.bot_data.store_variable("current_hype_level", 0)
 
 	# I think this is the shoutout
 	@commands.command(aliases=["so"])
@@ -430,4 +459,4 @@ class CommandsChat(commands.Component):
 ########################################################################################################################
 
 def increment_undo(bot: Bot):
-	bot.bot_data.undo_count += 1
+	bot.bot_data.increment_variable("undo_count")

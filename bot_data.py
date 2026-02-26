@@ -1,24 +1,17 @@
-import json
 import random
 import sqlite3
 import re
 from collections import deque
 from avatar_action import AvatarAction
+import datetime
 
 import utility_functions
 
 class BotData():
 	def __init__(self, avatars: dict):
 		self.current_queue_size = 0
-		self.bless_count = 0
-		self.undo_count = 0
-		self.distracted_count = 0
 		self.silly_mode = False
-		self.avatar = "sphinx"
-		self.current_hype_level = 0
-		self.highest_hype_level = 0
 		self.best_button_broken = False
-		self.greetings_said = set()
 
 		self.action_queue = deque[AvatarAction]()
 
@@ -74,6 +67,27 @@ class BotData():
 	def queue_random_avatars(self, avatars: dict):
 		self.random_avatars = [av for av in avatars.values() if av["allow_random"]]
 		random.shuffle(self.random_avatars)
+
+	def has_greeting_been_said(self, username: str) -> bool:
+		self.database_cursor.execute("SELECT COUNT(*) FROM greetings_said WHERE name = ?", (username,))
+		return self.database_cursor.fetchone()[0] > 0
+	
+	def add_greeting_said(self, username: str):
+		self.database_cursor.execute("INSERT INTO greetings_said VALUES (?)", (username,))
+		self.database.commit()
+
+	def clear_greetings_said(self):
+		self.database_cursor.execute("DELETE FROM greetings_said")
+		self.database.commit()
+
+	def get_last_start_time(self) -> datetime.datetime:
+		self.database_cursor.execute("SELECT value FROM variables WHERE name = 'last_start_time'")
+		string = self.database_cursor.fetchone()[0]
+		return datetime.datetime.fromisoformat(string)
+
+	def update_last_start_time(self):
+		self.database_cursor.execute("UPDATE variables SET value = ? WHERE name = 'last_start_time'", (datetime.datetime.now().isoformat(),))
+		self.database.commit()
 
 	def replace_vars_in_string(self, string: str) -> str:
 		result = string
