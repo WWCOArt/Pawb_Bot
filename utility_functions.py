@@ -10,20 +10,24 @@ def string_to_leetspeak(string: str) -> str:
 	table = {
 		"o": "0",
 		"i": "1",
+		"l": "1",
 		"z": "2",
 		"e": "3",
 		"a": "4",
 		"s": "5",
 		"g": "6",
 		"t": "7",
+		"b": "8",
 		"O": "N",
 		"I": "I",
+		"L": "I",
 		"Z": "II",
 		"E": "III",
 		"A": "IV",
 		"S": "V",
 		"G": "VI",
 		"T": "VII",
+		"B": "VIII",
 	}
 
 	result = ""

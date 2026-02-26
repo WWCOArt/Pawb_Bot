@@ -52,7 +52,8 @@ LOGGER: logging.Logger = logging.getLogger("Bot")
 ########################################################################################################################
 
 def get_avatar_info_by_veadotube_name(veadotube_name: str) -> dict:
-		return [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name][0]
+		matches = [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name]
+		return matches[0] if len(matches) > 0 else {}
 
 ########################################################################################################################
 
@@ -92,7 +93,10 @@ class Bot(commands.Bot):
 		await self.add_component(CommandsMisc(self.bot_data))
 		await self.add_component(CommandsCharacters(self.bot_data))
 
+		user = self.create_partialuser(user_id=OWNER_ID)
+
 		#await user.update_custom_reward(REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
+		#await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=False)
 
 		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self]) # type: ignore
 		self.bot_data.current_queue_size = len(trello.get_trello_queue())
@@ -120,21 +124,27 @@ class Bot(commands.Bot):
 		if command == "say":
 			await user.send_message(sender=self.user, message=" ".join(input_split[1:])) # type: ignore
 		elif command == "best" or command == "bestbutton":
-			await user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary") # type: ignore
+			if not self.bot_data.best_button_broken:
+				await user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary", color="purple") # type: ignore
 		elif command == "next":
 			requests.post(f"{CLOUD_WEBHOOK_URL}?advance_queue")
 			queue = trello.get_trello_queue()
-			await user.send_announcement(moderator=self.user, message=f"{queue[0]["name"]} is up!") # type: ignore
+			next_person = queue[0]["name"]
+			await user.send_announcement(moderator=self.user, message=f"{next_person} is up!") # type: ignore
+			await user.send_whisper(to_user=next_person.lower(), message=f"Sierra is starting on your dono, {next_person}")
 		elif command == "avatar":
-			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, input_split[1], 2.0)) # type: ignore
+			if len(input_split) > 1:
+				await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, input_split[1], 2.0)) # type: ignore
+			else:
+				print('Missing parameters for command "avatar"')
 		elif command == "headpats" or command == "hug":
 			is_hug = command == "hug"
 			all_interact_timings = get_avatar_info_by_veadotube_name(self.bot_data.avatar).get("interact_timings", 2.5)
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get(command, 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(("default", 2.5))
 			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration)) # type: ignore
-
-		print(inp)
+		else:
+			print(f'Unknown command "{command}"')
 
 	@routines.routine(delta=datetime.timedelta(seconds=2))
 	async def randomize_connection_offline(self):
@@ -160,6 +170,11 @@ class Bot(commands.Bot):
 			if "queue size" in current_stream_title:
 				await user.modify_channel(title=re.sub(r"\[\d+\]", f"[{len(new_queue)}]", current_stream_title))
 				self.bot_data.current_queue_size = len(new_queue)
+
+	@routines.routine(delta=datetime.timedelta(hours=1), iterations=1)
+	async def enable_planks(self):
+		user = self.create_partialuser(user_id=OWNER_ID)
+		#await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=True)
 
 ########################################################################################################################
 
@@ -190,18 +205,19 @@ class CommandsChat(commands.Component):
 			previous_avatar = self.bot_data.avatar
 			avatar_info = get_avatar_info_by_veadotube_name(action.avatar)
 			avatar_name = action.avatar
-			if avatar_name == "Kat Avatar":
-				self.bot_data.avatar = random.choices(["katMale", "katFemale", "katNanite"], weights=[90, 90, 20], k=1)[0]
-			elif avatar_name == "Gremlin":
-				if self.bot_data.avatar == "dragonSmall" or self.bot_data.avatar == "dragonOverload" or self.bot_data.avatar == "dragonMacro":
-					self.bot_data.avatar = "gremlinDragon"
+			if len(avatar_info) > 0:
+				if avatar_name == "Kat Avatar":
+					self.bot_data.avatar = random.choices(["katMale", "katFemale", "katNanite"], weights=[90, 90, 20], k=1)[0]
+				elif avatar_name == "Gremlin":
+					if self.bot_data.avatar == "dragonSmall" or self.bot_data.avatar == "dragonOverload" or self.bot_data.avatar == "dragonMacro":
+						self.bot_data.avatar = "gremlinDragon"
+					else:
+						self.bot_data.avatar = "gremlinSphinx"
 				else:
-					self.bot_data.avatar = "gremlinSphinx"
-			else:
-				self.bot_data.avatar = avatar_info["veadotube_name"]
+					self.bot_data.avatar = avatar_info["veadotube_name"]
 
-			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar}"')
-			await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
+				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{self.bot_data.avatar}"')
+				await self.update_redeem_availability(previous_avatar, self.bot_data.avatar)
 		elif action.type == ActionType.RANDOM_AVATAR:
 			previous_avatar = self.bot_data.avatar
 			self.bot_data.avatar = self.bot_data.random_avatars.pop()["veadotube_name"]
@@ -229,22 +245,25 @@ class CommandsChat(commands.Component):
 	####################################################################################################################
 
 	# Stream Startup. Add the following when time permitted:
-	# Start 1 hour wait to activate planks
+	# Start 1 hour wait to activate planks ⚠️ (Bot.setup_hook)
 	# Set dragonstage to 0 (can we just do a 'pressure reset' function?)
-	# Trigger Sphinx Avatar 
+	# Trigger Sphinx Avatar ✅ (this function)
 	# Check if first stream for today. 
-	# reset the First Redeem 
+	# reset the First Redeem ⚠️ (Bot.setup_hook)
 	# Future stuff. Set plush to idle. 
-	# Start the Searching For connection Redeem.
+	# Start the Searching For connection Redeem. ⚠️ (Bot.setup_hook)
 	# Reset the welcome string if first stream of day.
 	# disable any active hype dragons. Set current hype level to 0
-	# set distraction and undo to 0
+	# set distraction and undo to 0 ✅ (BotData.__init__)
 	# Ask diane if this would be under the same async def above the messages, or in a separate one.
-	# Pawb_bot startup messages
+	# Pawb_bot startup messages ✅ (this function)
 	@commands.Component.listener()
 	async def event_stream_online(self, payload: twitchio.StreamOnline):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
-		await user.send_message(sender=self.user, message=f"PawbOS {VERSION_NUMBER} booting up.") # type: ignore
+
+		await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "sphinx", 1.0))
+
+		await user.send_message(sender=self.user, message=f"PawbOS v{VERSION_NUMBER} booting up.") # type: ignore
 		await asyncio.sleep(0.5)
 		await user.send_message(sender=self.user, message="PawbBot terminal online.") # type: ignore
 		await asyncio.sleep(0.5)
