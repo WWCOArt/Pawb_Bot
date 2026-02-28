@@ -279,7 +279,7 @@ class CommandsChat(commands.Component):
 	# Start the Searching For connection Redeem. ⚠️ (Bot.setup_hook)
 	# Reset the welcome string if first stream of day.
 	# disable any active hype dragons. Set current hype level to 0 ⚠️ (Bot.setup_hook)
-	# set distraction and undo to 0 ✅ (BotData.__init__)
+	# set distraction and undo to 0 ✅ (Bot.setup_hook)
 	# Ask diane if this would be under the same async def above the messages, or in a separate one.
 	# Pawb_bot startup messages ✅ (this function)
 	@commands.Component.listener()
@@ -373,13 +373,15 @@ class CommandsChat(commands.Component):
 		elif payload.reward.id == REDEEMS["Random Avatar"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0))
 		# headpats and hugs.
-		elif payload.reward.id == REDEEMS["HeadPats (WIP)"]["id"] or payload.reward.id == REDEEMS["Hug!"]["id"]:
+		elif payload.reward.id == REDEEMS["HeadPats"]["id"] or payload.reward.id == REDEEMS["Hug!"]["id"]:
 			is_hug = payload.reward.id == REDEEMS["Hug!"]["id"]
 			current_avatar = get_current_avatar()
 			all_interact_timings = get_avatar_info_by_veadotube_name(current_avatar).get("interact_timings", 2.5)
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
 			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, current_avatar, duration))
+		elif payload.reward.id == REDEEMS["Peer Pressure"]["id"]:
+			pass
 		elif payload.reward.id == REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			for redeem in REDEEMS.values():

@@ -12,6 +12,7 @@ class BotData():
 		self.current_queue_size = 0
 		self.silly_mode = False
 		self.best_button_broken = False
+		self.peer_pressure_level = 0
 
 		self.action_queue = deque[AvatarAction]()
 
