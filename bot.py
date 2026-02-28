@@ -250,11 +250,35 @@ class CommandsChat(commands.Component):
 			await self.update_redeem_availability(previous_avatar, new_avatar["veadotube_name"])
 		elif action.type == ActionType.HEADPATS:
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "headpats"')
-		else:
+		elif action.type == ActionType.HUG:
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "hug"')
+		elif action.type == ActionType.PEER_PRESSURE:
+			current_avatar = get_current_avatar()
+			if current_avatar == "peerPressure":
+				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level) + 0.5}')
+				await asyncio.sleep(1.05)
+				self.bot_data.peer_pressure_level += 1
+				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
+				if self.bot_data.peer_pressure_level == 5:
+					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "dragonSmall"')
+					await self.update_redeem_availability(current_avatar, "dragonSmall")
+			elif current_avatar == "dragonSmall":
+				self.bot_data.peer_pressure_level += 1
+				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
+				await asyncio.sleep(0.5)
+				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level + 0.5)}')
+				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "peerPressure"')
+				await asyncio.sleep(11)
+				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "dragonOverload"')
+				await self.update_redeem_availability(current_avatar, "dragonOverload")
+			else:
+				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "peerPressure"')
+				await self.update_redeem_availability(current_avatar, "peerPressure")
+				self.bot_data.peer_pressure_level = 1
+				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 
 		await asyncio.sleep(action.duration)
-		
+
 		if action.type == ActionType.HEADPATS or action.type == ActionType.HUG:
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "neutral"')
 
@@ -381,7 +405,9 @@ class CommandsChat(commands.Component):
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
 			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, current_avatar, duration))
 		elif payload.reward.id == REDEEMS["Peer Pressure"]["id"]:
-			pass
+			await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0))
+		elif payload.reward.id == REDEEMS["Pressure Overload"]["id"]:
+			await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 11.0))
 		elif payload.reward.id == REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			for redeem in REDEEMS.values():

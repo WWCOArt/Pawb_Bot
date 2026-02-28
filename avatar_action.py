@@ -5,6 +5,7 @@ class ActionType(Enum):
 	RANDOM_AVATAR = 1
 	HEADPATS = 2
 	HUG = 3
+	PEER_PRESSURE = 4
 
 class AvatarAction:
 	def __init__(self, type_: ActionType, avatar: str, duration: float):
