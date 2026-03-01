@@ -102,7 +102,7 @@ class Bot(commands.Bot):
 		# reset everything if this is a new stream day
 		last_start_time = self.bot_data.get_last_start_time()
 		current_time = datetime.datetime.now()
-		if last_start_time.month != current_time.month and last_start_time.day != current_time.day and last_start_time.year != current_time.year:
+		if last_start_time.month != current_time.month or last_start_time.day != current_time.day or last_start_time.year != current_time.year:
 			self.bot_data.store_variable("undo_count", 0)
 			self.bot_data.store_variable("bless_count", 0)
 			self.bot_data.store_variable("distracted_count", 0)
@@ -295,13 +295,13 @@ class CommandsChat(commands.Component):
 
 	# Stream Startup. Add the following when time permitted:
 	# Start 1 hour wait to activate planks ⚠️ (Bot.setup_hook)
-	# Set dragonstage to 0 (can we just do a 'pressure reset' function?)
+	# Set dragonstage to 0 (can we just do a 'pressure reset' function?) ✅ (BotData.__init__)
 	# Trigger Sphinx Avatar ✅ (this function)
-	# Check if first stream for today. 
+	# Check if first stream for today. ✅ (Bot.setup_hook)
 	# reset the First Redeem ⚠️ (Bot.setup_hook)
 	# Future stuff. Set plush to idle. 
 	# Start the Searching For connection Redeem. ⚠️ (Bot.setup_hook)
-	# Reset the welcome string if first stream of day.
+	# Reset the welcome string if first stream of day. ✅ (Bot.setup_hook)
 	# disable any active hype dragons. Set current hype level to 0 ⚠️ (Bot.setup_hook)
 	# set distraction and undo to 0 ✅ (Bot.setup_hook)
 	# Ask diane if this would be under the same async def above the messages, or in a separate one.
