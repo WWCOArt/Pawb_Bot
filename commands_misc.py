@@ -16,7 +16,7 @@ class CommandsMisc(commands.Component):
 	async def unlurk(self, context: commands.Context):
 		await context.send(f"Welcome back, {context.author.display_name}! Hope your break went well!")
 
-	@commands.command()
+	@commands.command(aliases=["distraction"])
 	async def distracted(self, context: commands.Context):
 		new_count = self.bot_data.get_variable("distracted_count") + 1
 		await context.send(f"Sierra has been distracted at least {new_count} time{"s" if new_count != 1 else ""} this stream.")

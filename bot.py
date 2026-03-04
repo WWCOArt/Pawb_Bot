@@ -37,6 +37,7 @@ bot_secrets.close()
 with open("config.json", encoding="utf8") as config_data:
 	config_data_json = json.load(config_data)
 	VEADOTUBE_PATH = config_data_json["veadotube_path"]
+	CURRENT_SONG_PATH = config_data_json["current_song_path"]
 
 with open("avatars.json", encoding="utf8") as avatars_file:
 	AVATARS = json.load(avatars_file)
@@ -240,10 +241,22 @@ class CommandsChat(commands.Component):
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{new_avatar}"')
 				await self.update_redeem_availability(previous_avatar, new_avatar)
 		elif action.type == ActionType.RANDOM_AVATAR:
+			with open(CURRENT_SONG_PATH) as song_file:
+				current_song = song_file.read().strip()
+			
 			previous_avatar = get_current_avatar()
-			new_avatar = self.bot_data.random_avatars.pop()
-			if len(self.bot_data.random_avatars) == 0:
-				self.bot_data.queue_random_avatars(AVATARS)
+			new_avatar = {}
+			song_override = False
+			for avatar in AVATARS.values():
+				if avatar["song"] == current_song:
+					new_avatar = avatar
+					song_override = True
+					break
+
+			if not song_override:
+				new_avatar = self.bot_data.random_avatars.pop()
+				if len(self.bot_data.random_avatars) == 0:
+					self.bot_data.queue_random_avatars(AVATARS)
 
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{new_avatar["veadotube_name"]}"')
 			await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(new_avatar["description"])) # type: ignore
