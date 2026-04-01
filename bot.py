@@ -17,7 +17,7 @@ from twitchio.ext import commands, routines
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
 
-from utility_functions import send_message
+from utility_functions import send_message, string_to_leetspeak
 
 import trello
 from bot_data import BotData
@@ -147,12 +147,12 @@ class Bot(commands.Bot):
 			await send_message(user, sender=self.user, message=" ".join(input_split[1:])) # type: ignore
 		elif command == "best" or command == "bestbutton":
 			if not self.bot_data.best_button_broken:
-				await user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary", color="purple") # type: ignore
+				await user.send_announcement(moderator=self.user, message=string_to_leetspeak("Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary"), color="purple") # type: ignore
 		elif command == "next":
 			requests.post(f"{CLOUD_WEBHOOK_URL}?advance_queue")
 			queue = trello.get_trello_queue()
 			next_person = queue[0]["name"]
-			await user.send_announcement(moderator=self.user, message=f"{next_person} is up!") # type: ignore
+			await user.send_announcement(moderator=self.user, message=string_to_leetspeak(f"{next_person} is up!")) # type: ignore
 			await user.send_whisper(to_user=next_person.lower(), message=f"Sierra is starting on your dono, {next_person}")
 		elif command == "avatar":
 			if len(input_split) > 1:
