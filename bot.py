@@ -380,7 +380,7 @@ class CommandsChat(commands.Component):
 				await send_message(sender=self.bot.user, message="The skunk has been yeeted out of a portal and lands at runary's feet.") # type: ignore
 
 		# User greetings.
-		if payload.chatter.name in GREETINGS and not self.bot_data.has_greeting_been_said(payload.chatter.name) # type: ignore
+		if payload.chatter.name in GREETINGS and not self.bot_data.has_greeting_been_said(payload.chatter.name): # type: ignore
 			if payload.chatter.name == "flomuffin":
 				self.bot_data.increment_variable("door_count")
 
