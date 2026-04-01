@@ -40,7 +40,7 @@ class CommandsMisc(commands.Component):
 
 	@commands.command()
 	async def bleen(self, context: commands.Context):
-		await context.reply("What are you doing?? You're going to attract the Runary!")
+		await send_message_context(context, "What are you doing?? You're going to attract the Runary!", True)
 
 	@commands.command()
 	async def scronch(self, context: commands.Context):

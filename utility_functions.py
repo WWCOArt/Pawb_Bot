@@ -110,5 +110,8 @@ def is_full_moon() -> bool:
 async def send_message(user: PartialUser, sender: str | int | PartialUser, message: str):
 	await user.send_message(sender=sender, message=string_to_leetspeak(message))
 
-async def send_message_context(context: commands.Context, message: str):
-	await context.send(string_to_leetspeak(message))
+async def send_message_context(context: commands.Context, message: str, reply: bool = False):
+	if reply:
+		await context.reply(string_to_leetspeak(message))
+	else:
+		await context.send(string_to_leetspeak(message))

@@ -56,7 +56,7 @@ class CommandsRules(commands.Component):
 	async def displacerrule(self, context: commands.Context):
 		await send_message_context(context, f"{context.author.display_name}, did you just try that because you saw it on Sammi?")
 		await asyncio.sleep(300)
-		await context.reply("Displacer Rule: Displacer Beasts are never where you expect them to be. Same for their rules.")
+		await send_message_context(context, "Displacer Rule: Displacer Beasts are never where you expect them to be. Same for their rules.", True)
 
 	@commands.command()
 	async def frenrule(self, context: commands.Context):
