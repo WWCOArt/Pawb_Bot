@@ -111,4 +111,4 @@ async def send_message(user: PartialUser, sender: str | int | PartialUser, messa
 	await user.send_message(sender=sender, message=string_to_leetspeak(message))
 
 async def send_message_context(context: commands.Context, message: str):
-	await context.send(message)
+	await context.send(string_to_leetspeak(message))
