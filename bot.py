@@ -250,7 +250,7 @@ class CommandsChat(commands.Component):
 			new_avatar = {}
 			song_override = False
 			for avatar in AVATARS.values():
-				if avatar["song"] == current_song:
+				if avatar["song"] in current_song:
 					new_avatar = avatar
 					song_override = True
 					break
