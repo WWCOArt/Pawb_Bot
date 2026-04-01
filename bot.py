@@ -17,6 +17,8 @@ from twitchio.ext import commands, routines
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
 
+from utility_functions import send_message
+
 import trello
 from bot_data import BotData
 from avatar_action import ActionType, AvatarAction
@@ -142,7 +144,7 @@ class Bot(commands.Bot):
 		input_split = inp.split()
 		command = input_split[0].lower().lstrip("/! \t")
 		if command == "say":
-			await user.send_message(sender=self.user, message=" ".join(input_split[1:])) # type: ignore
+			await send_message(sender=self.user, message=" ".join(input_split[1:])) # type: ignore
 		elif command == "best" or command == "bestbutton":
 			if not self.bot_data.best_button_broken:
 				await user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary", color="purple") # type: ignore
@@ -180,9 +182,9 @@ class Bot(commands.Bot):
 				latest_donor = new_queue[-1]["name"].split("###")
 				if len(latest_donor) > 1:
 					if latest_donor[1].isdigit():
-						await user.send_message(sender=self.user, message=f"{latest_donor[0]}, you submitted a donation of less than $25, but you currently have a cooldown of {latest_donor[1]} days on getting an under $25 dono. You will be refunded.") # type: ignore
+						await send_message(sender=self.user, message=f"{latest_donor[0]}, you submitted a donation of less than $25, but you currently have a cooldown of {latest_donor[1]} days on getting an under $25 dono. You will be refunded.") # type: ignore
 					else:
-						await user.send_message(sender=self.user, message=f"{latest_donor[0]}, you are already on the queue. You will be refunded.") # type: ignore
+						await send_message(sender=self.user, message=f"{latest_donor[0]}, you are already on the queue. You will be refunded.") # type: ignore
 				else:
 					await user.send_announcement(moderator=self.user, message=f"{latest_donor[0]} has been added to the queue.", color="orange") # type: ignore
 
@@ -259,7 +261,7 @@ class CommandsChat(commands.Component):
 					self.bot_data.queue_random_avatars(AVATARS)
 
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{new_avatar["veadotube_name"]}"')
-			await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(new_avatar["description"])) # type: ignore
+			await send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(new_avatar["description"])) # type: ignore
 			await self.update_redeem_availability(previous_avatar, new_avatar["veadotube_name"])
 		elif action.type == ActionType.HEADPATS:
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "headpats"')
@@ -325,23 +327,23 @@ class CommandsChat(commands.Component):
 
 		await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "sphinx", 1.0))
 
-		await user.send_message(sender=self.user, message=f"PawbOS v{VERSION_NUMBER} booting up.") # type: ignore
+		await send_message(sender=self.user, message=f"PawbOS v{VERSION_NUMBER} booting up.") # type: ignore
 		await asyncio.sleep(0.5)
-		await user.send_message(sender=self.user, message="PawbBot terminal online.") # type: ignore
+		await send_message(sender=self.user, message="PawbBot terminal online.") # type: ignore
 		await asyncio.sleep(0.5)
-		await user.send_message(sender=self.user, message="Avatar system online.") # type: ignore
+		await send_message(sender=self.user, message="Avatar system online.") # type: ignore
 		await asyncio.sleep(1.0)
-		await user.send_message(sender=self.user, message="Video feed online.") # type: ignore
+		await send_message(sender=self.user, message="Video feed online.") # type: ignore
 		await asyncio.sleep(1.0)
-		await user.send_message(sender=self.user, message="Audio feed online.") # type: ignore
+		await send_message(sender=self.user, message="Audio feed online.") # type: ignore
 		await asyncio.sleep(1.0)
-		await user.send_message(sender=self.user, message="Low bandwidth detected. Searching for connection...") # type: ignore
+		await send_message(sender=self.user, message="Low bandwidth detected. Searching for connection...") # type: ignore
 
 	# pawb_bot shutdown messages
 	@commands.Component.listener()
 	async def event_stream_offline(self, payload: twitchio.StreamOffline):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
-		await user.send_message(sender=self.user, message="PawbOS shutting down.") # type: ignore
+		await send_message(sender=self.user, message="PawbOS shutting down.") # type: ignore
 
 	# listening for chat messages
 	@commands.Component.listener()
@@ -372,10 +374,10 @@ class CommandsChat(commands.Component):
 				"7H3 5KUNK H45 B33N Y3373D.",
 			])), weights=[30, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], k=1)[0]
 
-			await user.send_message(sender=self.bot.user, message=message[1]) # type: ignore
+			await send_message(sender=self.bot.user, message=message[1]) # type: ignore
 			if message[0] == 1:
 				await asyncio.sleep(120)
-				await user.send_message(sender=self.bot.user, message="The skunk has been yeeted out of a portal and lands at runary's feet.") # type: ignore
+				await send_message(sender=self.bot.user, message="The skunk has been yeeted out of a portal and lands at runary's feet.") # type: ignore
 
 		# User greetings.
 		if payload.chatter.name in GREETINGS and not self.bot_data.has_greeting_been_said(payload.chatter.name) # type: ignore
@@ -383,11 +385,11 @@ class CommandsChat(commands.Component):
 				self.bot_data.increment_variable("door_count")
 
 			if isinstance(GREETINGS[payload.chatter.name], str): # string = single greeting
-				await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(GREETINGS[payload.chatter.name])) # type: ignore
+				await send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(GREETINGS[payload.chatter.name])) # type: ignore
 			elif isinstance(GREETINGS[payload.chatter.name], list): # list = randomly pick from multiple greetings
-				await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(random.choice(GREETINGS[payload.chatter.name]))) # type: ignore
+				await send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(random.choice(GREETINGS[payload.chatter.name]))) # type: ignore
 			else: # dictionary = pick greeting based on form
-				await user.send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(GREETINGS[payload.chatter.name][self.bot_data.get_current_chatter_form(payload.chatter.name)]["greeting"])) # type: ignore
+				await send_message(sender=self.bot.user, message=self.bot_data.replace_vars_in_string(GREETINGS[payload.chatter.name][self.bot_data.get_current_chatter_form(payload.chatter.name)]["greeting"])) # type: ignore
 
 			self.bot_data.add_greeting_said(payload.chatter.name) # type: ignore
 
@@ -427,14 +429,14 @@ class CommandsChat(commands.Component):
 				if redeem["silly"]:
 					await user.update_custom_reward(redeem["id"], cost=random.randrange(2, 999) if self.bot_data.silly_mode else redeem["base_price"])
 
-			await user.send_message(sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
+			await send_message(sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
 		elif payload.reward.id == REDEEMS["This Redeem does nothing"]["id"]:
 			nothing_cost = self.bot_data.get_variable("nothing_cost")
 			self.bot_data.store_variable("nothing_cost", nothing_cost + 1)
 			await user.update_custom_reward(REDEEMS["This Redeem does nothing"]["id"], cost=nothing_cost)
 		elif payload.reward.id == REDEEMS["Create a Fox Rule!"]["id"]:
 			self.bot_data.add_foxrule(payload.user.display_name, payload.user_input) # type: ignore
-			await user.send_message(sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
+			await send_message(sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
 		elif payload.reward.id == REDEEMS["First!"]["id"]:
 			self.bot_data.increment_first_count(payload.user.name) # type: ignore
 			await user.update_custom_reward(REDEEMS["First!"]["id"], title=f"{payload.user.display_name} was first this stream!", prompt=f"They've been first {self.bot_data.get_first_count(payload.user.name)} times!") # type: ignore
@@ -448,19 +450,19 @@ class CommandsChat(commands.Component):
 		if payload.level > current_hype_level:
 			if payload.level == 1:
 				#await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=True)
-				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
+				await send_message(sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
 			elif payload.level == 2:
-				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 unlocked for rest of stream.") # type: ignore
+				await send_message(sender=self.bot.user, message="Hype Dragon Level 1 unlocked for rest of stream.") # type: ignore
 			elif payload.level == 3:
 				#await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=True)
-				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 3 unlocked.") # type: ignore
+				await send_message(sender=self.bot.user, message="Hype Dragon Level 3 unlocked.") # type: ignore
 			elif payload.level == 4:
-				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 3 unlocked for rest of stream.") # type: ignore
+				await send_message(sender=self.bot.user, message="Hype Dragon Level 3 unlocked for rest of stream.") # type: ignore
 			elif payload.level == 5:
 				#await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=True)
-				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 5 unlocked.") # type: ignore
+				await send_message(sender=self.bot.user, message="Hype Dragon Level 5 unlocked.") # type: ignore
 			elif payload.level >= 6:
-				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 5 unlocked for rest of stream.") # type: ignore
+				await send_message(sender=self.bot.user, message="Hype Dragon Level 5 unlocked for rest of stream.") # type: ignore
 
 			self.bot_data.store_variable("current_hype_level", payload.level)
 			self.bot_data.store_variable("highest_hype_level", payload.level)
@@ -475,17 +477,17 @@ class CommandsChat(commands.Component):
 		if highest_level < 6:
 			#await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=False)
 			if current_level > 4:
-				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 5 disabled.") # type: ignore
+				await send_message(sender=self.bot.user, message="Hype Dragon Level 5 disabled.") # type: ignore
 
 		if highest_level < 4:
 			#await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=False)
 			if current_level > 2:
-				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 3 disabled.") # type: ignore
+				await send_message(sender=self.bot.user, message="Hype Dragon Level 3 disabled.") # type: ignore
 
 		if highest_level < 2:
 			#await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=False)
 			if current_level > 0:
-				await user.send_message(sender=self.bot.user, message="Hype Dragon Level 1 disabled.") # type: ignore
+				await send_message(sender=self.bot.user, message="Hype Dragon Level 1 disabled.") # type: ignore
 
 		self.bot_data.store_variable("current_hype_level", 0)
 

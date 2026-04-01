@@ -4,6 +4,7 @@ from twitchio.ext import commands
 
 import trello
 from bot_data import BotData
+from utility_functions import send_message_context
 
 class CommandsDonos(commands.Component):
 	def __init__(self, bot_data: BotData):
@@ -11,7 +12,7 @@ class CommandsDonos(commands.Component):
 
 	@commands.command()
 	async def kofi(self, context: commands.Context):
-		await context.send("https://ko-fi.com/whenwolvescryout/commissions")
+		await send_message_context(context, "https://ko-fi.com/whenwolvescryout/commissions")
 
 	@commands.command()
 	async def queue(self, context: commands.Context):

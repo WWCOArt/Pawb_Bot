@@ -6,6 +6,9 @@ from astral import moon
 from num2words import num2words
 from CnyZodiac import ChineseNewYearZodiac as cnyz
 
+from twitchio import PartialUser
+from twitchio.ext import commands
+
 def string_to_leetspeak(string: str) -> str:
 	table = {
 		"o": "0",
@@ -103,3 +106,9 @@ def get_mainecoone_name(person_talking: str) -> str:
 def is_full_moon() -> bool:
 	phase = moon.phase(datetime.datetime.now())
 	return phase > 13.4 and phase < 14.6
+
+async def send_message(user: PartialUser, sender: str | int | PartialUser, message: str):
+	await user.send_message(sender=sender, message=string_to_leetspeak(message))
+
+async def send_message_context(context: commands.Context, message: str):
+	await send_message_context(context, string_to_leetspeak(message))
