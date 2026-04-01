@@ -327,23 +327,23 @@ class CommandsChat(commands.Component):
 
 		#await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "sphinx", 1.0))
 
-		await send_message(user, sender=self.user, message=f"PawbOS v{VERSION_NUMBER} booting up.") # type: ignore
+		await send_message(user, sender=self.bot.user, message=f"PawbOS v{VERSION_NUMBER} booting up.") # type: ignore
 		await asyncio.sleep(0.5)
-		await send_message(user, sender=self.user, message="PawbBot terminal online.") # type: ignore
+		await send_message(user, sender=self.bot.user, message="PawbBot terminal online.") # type: ignore
 		await asyncio.sleep(0.5)
-		await send_message(user, sender=self.user, message="Avatar system online.") # type: ignore
+		await send_message(user, sender=self.bot.user, message="Avatar system online.") # type: ignore
 		await asyncio.sleep(1.0)
-		await send_message(user, sender=self.user, message="Video feed online.") # type: ignore
+		await send_message(user, sender=self.bot.user, message="Video feed online.") # type: ignore
 		await asyncio.sleep(1.0)
-		await send_message(user, sender=self.user, message="Audio feed online.") # type: ignore
+		await send_message(user, sender=self.bot.user, message="Audio feed online.") # type: ignore
 		await asyncio.sleep(1.0)
-		await send_message(user, sender=self.user, message="Low bandwidth detected. Searching for connection...") # type: ignore
+		await send_message(user, sender=self.bot.user, message="Low bandwidth detected. Searching for connection...") # type: ignore
 
 	# pawb_bot shutdown messages
 	@commands.Component.listener()
 	async def event_stream_offline(self, payload: twitchio.StreamOffline):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
-		await send_message(user, sender=self.user, message="PawbOS shutting down.") # type: ignore
+		await send_message(user, sender=self.bot.user, message="PawbOS shutting down.") # type: ignore
 
 	# listening for chat messages
 	@commands.Component.listener()
