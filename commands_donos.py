@@ -10,7 +10,7 @@ class CommandsDonos(commands.Component):
 	def __init__(self, bot_data: BotData):
 		self.bot_data = bot_data
 
-	@commands.command()
+	@commands.command(aliases=["dono", "donos"])
 	async def kofi(self, context: commands.Context):
 		await send_message_context(context, "https://ko-fi.com/whenwolvescryout/commissions")
 
@@ -20,6 +20,6 @@ class CommandsDonos(commands.Component):
 		queue_names = [card["name"] for card in queue_list]
 		await send_message_context(context, f"Here's the current queue: {', '.join(queue_names)}", True)
 
-	@commands.command(aliases=["cooldown", "dono", "donos"])
+	@commands.command(aliases=["cooldown"])
 	async def donocheck(self, context: commands.Context):
 		pass
