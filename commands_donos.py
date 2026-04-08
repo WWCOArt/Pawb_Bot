@@ -18,7 +18,7 @@ class CommandsDonos(commands.Component):
 	async def queue(self, context: commands.Context):
 		queue_list = trello.get_trello_queue()
 		queue_names = [card["name"] for card in queue_list]
-		await send_message_context(context, f"Here's the current queue: {', '.join(queue_names)}", True)
+		await send_message_context(context, f"Here's the current queue: {', '.join(queue_names)}", reply=True)
 
 	@commands.command(aliases=["cooldown"])
 	async def donocheck(self, context: commands.Context):

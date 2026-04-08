@@ -249,7 +249,8 @@ class CommandsChat(commands.Component):
 			new_avatar = {}
 			song_override = False
 			for avatar in AVATARS.values():
-				if avatar["song"] in current_song:
+				this_song = avatar.get("song")
+				if this_song != None and this_song in current_song:
 					new_avatar = avatar
 					song_override = True
 					break
@@ -502,6 +503,7 @@ class CommandsChat(commands.Component):
 			await user.send_shoutout(to_broadcaster=whom, moderator=context.author)
 
 	@commands.command(aliases=["highlight", "hl"])
+	@commands.cooldown(rate=1, per=120.0, key=commands.BucketType.default)
 	async def marker(self, context: commands.Context):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 
@@ -511,7 +513,7 @@ class CommandsChat(commands.Component):
 		description = " ".join(context.message.text.split()[1:]) # type: ignore
 
 		await user.create_stream_marker(token_for=OWNER_ID, description=description)
-		await send_message_context(context, "Stream Marker has been created!", True)
+		await send_message_context(context, "Stream Marker has been created!", reply=True)
 
 ########################################################################################################################
 
