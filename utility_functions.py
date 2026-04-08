@@ -108,10 +108,10 @@ def is_full_moon() -> bool:
 	return phase > 13.4 and phase < 14.6
 
 async def send_message(user: PartialUser, sender: str | int | PartialUser, message: str):
-	await user.send_message(sender=sender, message=string_to_leetspeak(message))
+	await user.send_message(sender=sender, message=message)
 
 async def send_message_context(context: commands.Context, message: str, reply: bool = False):
 	if reply:
-		await context.reply(string_to_leetspeak(message))
+		await context.reply(message)
 	else:
-		await context.send(string_to_leetspeak(message))
+		await context.send(message)
