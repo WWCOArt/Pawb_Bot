@@ -344,6 +344,9 @@ class CommandsChat(commands.Component):
 	async def event_stream_offline(self, payload: twitchio.StreamOffline):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 		await send_message(user, sender=self.bot.user, message="PawbOS shutting down.") # type: ignore
+		if len(self.bot_data.stream_markers) > 0:
+			all_markers = ", ".join([f"{marker[1]:02}:{marker[2]:02}:{marker[3]:02}: {marker[0]}" for marker in self.bot_data.stream_markers])
+			print(f"Reminder to add these stream markers: {all_markers}")
 
 	# listening for chat messages
 	@commands.Component.listener()
@@ -513,6 +516,14 @@ class CommandsChat(commands.Component):
 		description = " ".join(context.message.text.split()[1:]) # type: ignore
 
 		await user.create_stream_marker(token_for=OWNER_ID, description=description)
+
+		start_time = (await user.fetch_stream()).started_at # type: ignore
+		uptime = datetime.datetime.now() - start_time
+		mm, ss = divmod(uptime.seconds, 60)
+		hh, mm = divmod(mm, 60)
+
+		self.bot_data.stream_markers.append((description, hh, mm, ss))
+
 		await send_message_context(context, "Stream Marker has been created!", reply=True)
 
 ########################################################################################################################

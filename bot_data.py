@@ -15,6 +15,7 @@ class BotData():
 		self.peer_pressure_level = 0
 
 		self.action_queue = deque[AvatarAction]()
+		self.stream_markers = list[tuple[str, int, int, int]]()
 
 		self.database = sqlite3.connect("bot_data.db")
 		self.database_cursor = self.database.cursor()
