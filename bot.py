@@ -127,7 +127,7 @@ class Bot(commands.Bot):
 
 		# TODO !!!!! GET RID OF THESE LINES AFTER THE REDEEMS ARE CREATED !!!!!
 		await user.create_custom_reward(title="First!", cost=1, prompt="Show everyone you were the fastest.", max_per_stream=1, background_color="#333333")
-		await user.create_custom_reward(title="Memory Leak", cost=1, prompt="Lose one of your Digital Dragon Hoard", background_color="#ff0000")
+		await user.create_custom_reward(title="Memory Leak", cost=1, prompt="Lose one of your Digital Dragon Hoard", background_color="#f71b24")
 		await user.create_custom_reward(title="Wellness Check!", cost=100, prompt="Hydrate, stretch, grip check, and posture check!", background_color="#00da15")
 		await user.create_custom_reward(title="Save Your Canvas", cost=100, background_color="#00da15")
 		await user.create_custom_reward(title="Rest Your Eyes", cost=100, prompt="20/20/20 Focus on something 20 feet away for 20 seconds, once every 20 minutes.", background_color="#00da15")
@@ -147,6 +147,9 @@ class Bot(commands.Bot):
 		await user.create_custom_reward(title="Peer Pressure", cost=100, prompt="Peer pressure Sierra into a dragon", background_color="#bda8ff")
 		await user.create_custom_reward(title="Pressure Overload", cost=500, background_color="#bda8ff", enabled=False)
 		
+		await user.create_custom_reward(title="Blink", cost=10, background_color="#f71b24")
+		await user.create_custom_reward(title="Winter Mode", cost=50, background_color="#fff9c7")
+
 		await user.create_custom_reward(title="Sphinx", cost=500, background_color="#56bde6")
 		await user.create_custom_reward(title="Tiger", cost=500, background_color="#56bde6")
 		await user.create_custom_reward(title="Aota", cost=500, background_color="#56bde6")
@@ -204,6 +207,8 @@ class Bot(commands.Bot):
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get(command, 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(("default", 2.5))
 			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration)) # type: ignore
+		elif command == "noplanks":
+			pass
 		else:
 			print(f'Unknown command "{command}"')
 
