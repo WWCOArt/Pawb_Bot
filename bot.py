@@ -113,9 +113,9 @@ class Bot(commands.Bot):
 
 			await user.update_custom_reward(REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
 			await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=False)
-			await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=False)
-			await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=False)
-			await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["HypeDragon3"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=False)
 			await user.update_custom_reward(REDEEMS["Winter Mode"]["id"], enabled=False)
 			await user.update_custom_reward(REDEEMS["Blink"]["id"], enabled=False)
 
@@ -461,17 +461,17 @@ class CommandsChat(commands.Component):
 		current_hype_level = self.bot_data.get_variable("current_hype_level")
 		if payload.level > current_hype_level:
 			if payload.level == 1:
-				await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=True)
+				await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
 			elif payload.level == 2:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked for rest of stream.") # type: ignore
 			elif payload.level == 3:
-				await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=True)
+				await user.update_custom_reward(REDEEMS["HypeDragon3"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 unlocked.") # type: ignore
 			elif payload.level == 4:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 unlocked for rest of stream.") # type: ignore
 			elif payload.level == 5:
-				await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=True)
+				await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 unlocked.") # type: ignore
 			elif payload.level >= 6:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 unlocked for rest of stream.") # type: ignore
@@ -487,17 +487,17 @@ class CommandsChat(commands.Component):
 		highest_level = self.bot_data.get_variable("highest_hype_level")
 
 		if highest_level < 6:
-			await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=False)
 			if current_level > 4:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 disabled.") # type: ignore
 
 		if highest_level < 4:
-			await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["HypeDragon3"]["id"], enabled=False)
 			if current_level > 2:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 disabled.") # type: ignore
 
 		if highest_level < 2:
-			await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=False)
 			if current_level > 0:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 disabled.") # type: ignore
 
