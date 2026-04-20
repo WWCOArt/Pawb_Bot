@@ -111,11 +111,13 @@ class Bot(commands.Bot):
 			self.bot_data.store_variable("current_hype_level", 0)
 			self.bot_data.store_variable("highest_hype_level", 0)
 
-			#await user.update_custom_reward(REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
-			#await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=False)
-			#await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=False)
-			#await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=False)
-			#await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
+			await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["Winter Mode"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["Blink"]["id"], enabled=False)
 
 		self.bot_data.update_last_start_time()
 
@@ -124,49 +126,6 @@ class Bot(commands.Bot):
 
 		self.randomize_connection_offline.start()
 		self.poll_trello_queue.start()
-
-		# TODO !!!!! GET RID OF THESE LINES AFTER THE REDEEMS ARE CREATED !!!!!
-		# await user.create_custom_reward(title="First!", cost=1, prompt="Show everyone you were the fastest.", max_per_stream=1, background_color="#333333")
-		# await user.create_custom_reward(title="Memory Leak", cost=1, prompt="Lose one of your Digital Dragon Hoard", background_color="#f71b24")
-		# await user.create_custom_reward(title="Wellness Check!", cost=100, prompt="Hydrate, stretch, grip check, and posture check!", background_color="#00da15")
-		# await user.create_custom_reward(title="Save Your Canvas", cost=100, background_color="#00da15")
-		# await user.create_custom_reward(title="Rest Your Eyes", cost=100, prompt="20/20/20 Focus on something 20 feet away for 20 seconds, once every 20 minutes.", background_color="#00da15")
-		# await user.create_custom_reward(title="Planks!", cost=800, prompt="Sierra has to do planks to keep void's back healthy. (Disabled for first hour of stream, and then 2 hour cooldown)", global_cooldown=7200, background_color="#00da15")
-		# await user.create_custom_reward(title="Write that down!", cost=200, prompt="Remind Sierra to write a distracting thought down on an index card for later, and get focused back on task. For if the distraction is getting out of hand.", background_color="#ff0000")
-		# await user.create_custom_reward(title="Fox Simulator 2084", cost=500, prompt="Now available! The hit game!", max_per_user=1, background_color="#00f593")
-
-		# await user.create_custom_reward(title="This Redeem does nothing", cost=2466, prompt="But each time it's redeemed, the cost becomes one higher. How high will it go? Last redeemed by NOBODY.", background_color="#333333")
-
-		# await user.create_custom_reward(title="Create a Fox Rule!", cost=10000, prompt="Add a new rule to the !foxrules command! Please be sure to include what rule # it is!", background_color="#ff0000")
-
-		# await user.create_custom_reward(title="Power Word CAT", cost=10000, global_cooldown=1600, background_color="#bda8ff")
-		# await user.create_custom_reward(title="Power Word Tetris", cost=25000, global_cooldown=7200, background_color="#00f593")
-
-		# await user.create_custom_reward(title="Connection offline...", cost=999999999, background_color="#ff0000")
-
-		# await user.create_custom_reward(title="Peer Pressure", cost=100, prompt="Peer pressure Sierra into a dragon", background_color="#bda8ff")
-		# await user.create_custom_reward(title="Pressure Overload", cost=500, background_color="#bda8ff", enabled=False)
-		
-		# await user.create_custom_reward(title="Blink", cost=10, background_color="#f71b24")
-		# await user.create_custom_reward(title="Winter Mode", cost=50, background_color="#fff9c7")
-
-		# await user.create_custom_reward(title="Sphinx", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Tiger", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Aota", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Gremlin", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Kat", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Royal Fox", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Big Fox!", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Wickerbeast", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Spooky Avatar", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Manticore", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="What if Big?", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Skunk(?) Avatar", cost=500, background_color="#af39d1")
-		# await user.create_custom_reward(title="Hype Dragon 1", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Hype Dragon 3", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Hype Dragon 5", cost=500, background_color="#56bde6")
-		# await user.create_custom_reward(title="Random Avatar", cost=501, background_color="#6da6d8")
-		# TODO !!!!! GET RID OF THESE LINES AFTER THE REDEEMS ARE CREATED !!!!!
 		
 		LOGGER.info("Finished setup hook!")
 
@@ -208,7 +167,7 @@ class Bot(commands.Bot):
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(("default", 2.5))
 			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration)) # type: ignore
 		elif command == "noplanks":
-			pass
+			self.bot_data.planks_disabled = True
 		else:
 			print(f'Unknown command "{command}"')
 
@@ -239,8 +198,9 @@ class Bot(commands.Bot):
 
 	@routines.routine(delta=datetime.timedelta(hours=1), iterations=1)
 	async def enable_planks(self):
-		user = self.create_partialuser(user_id=OWNER_ID)
-		await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=True)
+		if not self.bot_data.planks_disabled:
+			user = self.create_partialuser(user_id=OWNER_ID)
+			await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=True)
 
 ########################################################################################################################
 
@@ -255,11 +215,11 @@ class CommandsChat(commands.Component):
 		redeems_enabled = avatar_info.get("enable_redeems", [])
 
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
-		#for redeem in redeems_disabled:
-			#await user.update_custom_reward(REDEEMS[redeem]["id"], enabled=not is_switched_to)
+		for redeem in redeems_disabled:
+			await user.update_custom_reward(REDEEMS[redeem]["id"], enabled=not is_switched_to)
 		
-		#for redeem in redeems_enabled:
-			#await user.update_custom_reward(REDEEMS[redeem]["id"], enabled=is_switched_to)
+		for redeem in redeems_enabled:
+			await user.update_custom_reward(REDEEMS[redeem]["id"], enabled=is_switched_to)
 
 	async def update_redeem_availability(self, previous_avatar: str, new_avatar: str):
 		await self.avatar_transition(previous_avatar, False)
@@ -500,17 +460,17 @@ class CommandsChat(commands.Component):
 		current_hype_level = self.bot_data.get_variable("current_hype_level")
 		if payload.level > current_hype_level:
 			if payload.level == 1:
-				#await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=True)
+				await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
 			elif payload.level == 2:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked for rest of stream.") # type: ignore
 			elif payload.level == 3:
-				#await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=True)
+				await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 unlocked.") # type: ignore
 			elif payload.level == 4:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 unlocked for rest of stream.") # type: ignore
 			elif payload.level == 5:
-				#await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=True)
+				await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 unlocked.") # type: ignore
 			elif payload.level >= 6:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 unlocked for rest of stream.") # type: ignore
@@ -526,17 +486,17 @@ class CommandsChat(commands.Component):
 		highest_level = self.bot_data.get_variable("highest_hype_level")
 
 		if highest_level < 6:
-			#await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["Hype Dragon 5"]["id"], enabled=False)
 			if current_level > 4:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 disabled.") # type: ignore
 
 		if highest_level < 4:
-			#await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["Hype Dragon 3"]["id"], enabled=False)
 			if current_level > 2:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 disabled.") # type: ignore
 
 		if highest_level < 2:
-			#await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["Hype Dragon 1"]["id"], enabled=False)
 			if current_level > 0:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 disabled.") # type: ignore
 

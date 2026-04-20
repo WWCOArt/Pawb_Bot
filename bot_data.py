@@ -13,6 +13,7 @@ class BotData():
 		self.silly_mode = False
 		self.best_button_broken = False
 		self.peer_pressure_level = 0
+		self.planks_disabled = False
 
 		self.action_queue = deque[AvatarAction]()
 		self.stream_markers = list[tuple[str, int, int, int]]()
