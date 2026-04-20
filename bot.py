@@ -118,6 +118,7 @@ class Bot(commands.Bot):
 			await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=False)
 			await user.update_custom_reward(REDEEMS["Winter Mode"]["id"], enabled=False)
 			await user.update_custom_reward(REDEEMS["Blink"]["id"], enabled=False)
+			await user.update_custom_reward(REDEEMS["What if Big?"]["id"], enabled=False)
 
 		self.bot_data.update_last_start_time()
 
@@ -437,11 +438,10 @@ class CommandsChat(commands.Component):
 			await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 11.0))
 		elif payload.reward.id == REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
+			await send_message(user, sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
 			for redeem in REDEEMS.values():
 				if redeem["silly"]:
 					await user.update_custom_reward(redeem["id"], cost=random.randrange(2, 999) if self.bot_data.silly_mode else redeem["base_price"])
-
-			await send_message(user, sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
 		elif payload.reward.id == REDEEMS["This Redeem does nothing"]["id"]:
 			nothing_cost = self.bot_data.get_variable("nothing_cost")
 			self.bot_data.store_variable("nothing_cost", nothing_cost + 1)

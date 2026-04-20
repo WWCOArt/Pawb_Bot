@@ -18,6 +18,7 @@ LOGGER: logging.Logger = logging.getLogger("Bot")
 ####### EDIT THESE
 redeem_name = "HeadPats"
 redeem_color = "#bda8ff"
+redeem_description = None
 redeem_cost = 100
 #######
 
@@ -35,7 +36,7 @@ class Bot(commands.Bot):
 	async def setup_hook(self) -> None:
 		user = self.create_partialuser(user_id=OWNER_ID)
 
-		await user.create_custom_reward(title=redeem_name, cost=redeem_cost, background_color=redeem_color)
+		await user.create_custom_reward(title=redeem_name, cost=redeem_cost, background_color=redeem_color, prompt=redeem_description)
 		
 		LOGGER.info("Redeem created!")
 
