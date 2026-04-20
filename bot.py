@@ -230,6 +230,8 @@ class CommandsChat(commands.Component):
 		await self.avatar_transition(new_avatar, True)
 
 	async def advance_action_queue(self):
+		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		
 		await asyncio.sleep(2)
 		action = self.bot_data.action_queue[0]
 		if action.type == ActionType.AVATAR_CHANGE:
