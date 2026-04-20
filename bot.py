@@ -167,6 +167,7 @@ class Bot(commands.Bot):
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(("default", 2.5))
 			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration)) # type: ignore
 		elif command == "noplanks":
+			await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=False)
 			self.bot_data.planks_disabled = True
 		else:
 			print(f'Unknown command "{command}"')
