@@ -120,6 +120,8 @@ class Bot(commands.Bot):
 			await user.update_custom_reward(REDEEMS["Blink"]["id"], enabled=False)
 			await user.update_custom_reward(REDEEMS["What if Big?"]["id"], enabled=False)
 
+			self.bot_data.clear_greetings_said()
+
 		self.bot_data.update_last_start_time()
 
 		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self]) # type: ignore
@@ -417,11 +419,9 @@ class CommandsChat(commands.Component):
 
 		# When redeem is triggered, first check if the title matches any of the avatar redeems. If so, add the avatar swap to the queue.
 		if payload.reward.title in AVATARS:
-			pass
 			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS[payload.reward.title]["veadotube_name"], 2.0))
 		#if it's not in the avatar list, compare to other redeems
 		elif payload.reward.id == REDEEMS["Random Avatar"]["id"]:
-			pass
 			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0))
 		# headpats and hugs.
 		elif payload.reward.id == REDEEMS["HeadPats"]["id"] or payload.reward.id == REDEEMS["Hug!"]["id"]:
@@ -431,7 +431,6 @@ class CommandsChat(commands.Component):
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
 			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, current_avatar, duration))
-			pass
 		elif payload.reward.id == REDEEMS["Peer Pressure"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0))
 		elif payload.reward.id == REDEEMS["Pressure Overload"]["id"]:
