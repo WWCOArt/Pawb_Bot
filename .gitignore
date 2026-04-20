@@ -6,6 +6,7 @@ avatars.json
 secrets.json
 config.json
 redeems.json
+redeems backup.json
 greetings.json
 
 commands_secret.py
