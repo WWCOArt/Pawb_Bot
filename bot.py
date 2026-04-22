@@ -8,7 +8,7 @@ import asyncio
 import re
 import requests
 
-VERSION_NUMBER = "2.0"
+VERSION_NUMBER = "0.3.6.3"
 
 import twitchio
 from twitchio import eventsub
