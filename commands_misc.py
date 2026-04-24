@@ -25,7 +25,7 @@ class CommandsMisc(commands.Component):
 
 	@commands.command()
 	async def undocount(self, context: commands.Context):
-		await send_message_context(context, f"Sierra has pressed ctrl+z {self.bot_data.get_variable("undo_count")} times this stream.")
+		await send_message_context(context, f"Sierra has pressed Ctrl+Z {self.bot_data.get_variable("undo_count")} times this stream.")
 
 	@commands.command()
 	async def throne(self, context: commands.Context):

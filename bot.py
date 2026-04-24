@@ -124,7 +124,7 @@ class Bot(commands.Bot):
 
 		self.bot_data.update_last_start_time()
 
-		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self]) # type: ignore
+		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self, asyncio.get_event_loop()]) # type: ignore
 		self.bot_data.current_queue_size = len(trello.get_trello_queue())
 
 		self.randomize_connection_offline.start()
@@ -535,5 +535,8 @@ class CommandsChat(commands.Component):
 
 ########################################################################################################################
 
-def increment_undo(bot: Bot):
+def increment_undo_actual(bot: Bot):
 	bot.bot_data.increment_variable("undo_count")
+
+def increment_undo(bot: Bot, event_loop: asyncio.AbstractEventLoop):
+	event_loop.call_soon_threadsafe(increment_undo_actual, bot)
