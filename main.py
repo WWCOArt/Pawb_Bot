@@ -21,8 +21,6 @@ def main() -> None:
 		asyncio.run(runner())
 	except KeyboardInterrupt:
 		bot.LOGGER.warning("Shutting down due to Keyboard Interrupt...")
-	except commands.CommandNotFound:
-		pass
 
 if __name__ == "__main__":
 	main()

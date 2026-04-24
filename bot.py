@@ -75,6 +75,11 @@ class Bot(commands.Bot):
 			case_insensitive=True
 		)
 
+	# ignore "command not found" errors because why does it even throw those
+	async def event_command_error(self, payload: commands.CommandErrorPayload) -> None:
+		if not type(payload.exception) is commands.exceptions.CommandNotFound:
+			await super().event_command_error(payload)
+
 	# Do some async setup, as an example we will load a component and subscribe to some events...
 	# Passing the bot to the component is completely optional...
 	async def setup_hook(self) -> None:
