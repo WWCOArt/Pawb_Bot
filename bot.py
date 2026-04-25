@@ -469,13 +469,6 @@ class CommandsChat(commands.Component):
 	async def event_custom_redemption_add(self, payload: twitchio.ChannelPointsRedemptionAdd):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 
-		# silly mode
-		if self.bot_data.silly_mode:
-			for redeem in REDEEMS.values():
-				if redeem["silly"]:
-					new_cost = random.randrange(2, 999)
-					await user.update_custom_reward(redeem["id"], cost=new_cost)
-
 		# When redeem is triggered, first check if the title matches any of the avatar redeems. If so, add the avatar swap to the queue.
 		if payload.reward.title in AVATARS:
 			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS[payload.reward.title]["veadotube_name"], 2.0))
@@ -510,6 +503,13 @@ class CommandsChat(commands.Component):
 		elif payload.reward.id == REDEEMS["First!"]["id"]:
 			self.bot_data.increment_first_count(payload.user.name) # type: ignore
 			await user.update_custom_reward(REDEEMS["First!"]["id"], title=f"{payload.user.display_name} was first this stream!", prompt=f"They've been first {self.bot_data.get_first_count(payload.user.name)} times!") # type: ignore
+
+		# silly mode
+		if self.bot_data.silly_mode:
+			for redeem in REDEEMS.values():
+				if redeem["silly"]:
+					new_cost = random.randrange(2, 999)
+					await user.update_custom_reward(redeem["id"], cost=new_cost)
 
 	# # hype dragons
 	@commands.Component.listener()
