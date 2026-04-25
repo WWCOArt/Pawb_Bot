@@ -496,7 +496,7 @@ class CommandsChat(commands.Component):
 		elif payload.reward.id == REDEEMS["This Redeem does nothing"]["id"]:
 			nothing_cost = self.bot_data.get_variable("nothing_cost")
 			self.bot_data.store_variable("nothing_cost", nothing_cost + 1)
-			await user.update_custom_reward(REDEEMS["This Redeem does nothing"]["id"], cost=nothing_cost)
+			await user.update_custom_reward(REDEEMS["This Redeem does nothing"]["id"], cost=nothing_cost, prompt=f"But each time it's redeemed, the cost becomes one higher. How high will it go? Last redeemed by {payload.user.display_name}.")
 		elif payload.reward.id == REDEEMS["Create a Fox Rule!"]["id"]:
 			self.bot_data.add_foxrule(payload.user.display_name, payload.user_input) # type: ignore
 			await send_message(user, sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
