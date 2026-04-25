@@ -34,6 +34,10 @@ class CommandsMisc(commands.Component):
 		else:
 			await send_message_context(context, "Sierra's wishlist can be viewed at: https://throne.com/whenwolvescryout")
 
+	@commands.command(aliases=["watch_together", "watch2gether", "watch_2_gether", "w2g"])
+	async def watchtogether(self, context: commands.Context):
+		await send_message_context(context, "The Library Watch2Gether is at: https://w2g.tv/?r=jmid672vy4qn35p0tc")
+
 	@commands.command()
 	async def cc(self, context: commands.Context):
 		await send_message_context(context, "If you use OBS Studio for streaming, I highly recommend checking out RatWithACompiler's captions plugin. Setup is basically drag and drop, and doesn't require you to have a separate window open while streaming. https://github.com/ratwithacompiler/OBS-captions-plugin")

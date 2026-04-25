@@ -20,6 +20,6 @@ class CommandsDonos(commands.Component):
 	# 	queue_names = [card["name"] for card in queue_list]
 	# 	await send_message_context(context, f"Here's the current queue: {', '.join(queue_names)}", reply=True)
 
-	@commands.command(aliases=["cooldown"])
-	async def donocheck(self, context: commands.Context):
-		pass
+	# @commands.command(aliases=["cooldown"])
+	# async def donocheck(self, context: commands.Context):
+	# 	pass

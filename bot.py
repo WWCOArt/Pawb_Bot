@@ -8,7 +8,9 @@ import asyncio
 import re
 import requests
 
-VERSION_NUMBER = "0.3.6.3"
+VERSION_NUMBER = "0.3.7.0"
+
+DIANE_TEST_MODE = False
 
 import twitchio
 from twitchio import eventsub
@@ -43,6 +45,12 @@ with open("config.json", encoding="utf8") as config_data:
 with open("avatars.json", encoding="utf8") as avatars_file:
 	AVATARS = json.load(avatars_file)
 
+	REDEEMS_DEFAULT_ENABLED = set()
+	REDEEMS_DEFAULT_DISABLED = set()
+	for avatar in AVATARS.values():
+		REDEEMS_DEFAULT_DISABLED.update(avatar.get("enable_redeems", []))
+		REDEEMS_DEFAULT_ENABLED.update(avatar.get("disable_redeems", []))
+
 with open("redeems.json", encoding="utf8") as redeem_ids_file:
 	REDEEMS = json.load(redeem_ids_file)
 
@@ -51,11 +59,24 @@ with open("greetings.json", encoding="utf8") as greetings_file:
 
 LOGGER: logging.Logger = logging.getLogger("Bot")
 
+if DIANE_TEST_MODE:
+	current_avatar = "sphinx"
+
 ########################################################################################################################
 
 def get_current_avatar() -> str:
-	result = subprocess.Popen("veadotube -i 0 nodes stateEvents avatarSwap peek", stdout=subprocess.PIPE)
-	return result.stdout.read().decode() # type: ignore
+	if DIANE_TEST_MODE:
+		return current_avatar
+	else:
+		result = subprocess.Popen("veadotube -i 0 nodes stateEvents avatarSwap peek", stdout=subprocess.PIPE)
+		return result.stdout.read().decode() # type: ignore
+
+def set_current_avatar(av: str):
+	if DIANE_TEST_MODE:
+		current_avatar = av
+		LOGGER.info(f"New avatar: {av}")
+	else:
+		subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
 
 def get_avatar_info_by_veadotube_name(veadotube_name: str) -> dict:
 	matches = [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name]
@@ -154,20 +175,26 @@ class Bot(commands.Bot):
 		command = input_split[0].lower().lstrip("/! \t")
 		if command == "say":
 			await send_message(user, sender=self.user, message=" ".join(input_split[1:])) # type: ignore
-		elif command == "best" or command == "bestbutton":
+		elif command == "best" or command == "best_button":
 			if not self.bot_data.best_button_broken:
-				await user.send_announcement(moderator=self.user, message=string_to_leetspeak("Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary"), color="purple") # type: ignore
+				await user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary", color="purple") # type: ignore
 		elif command == "next":
 			requests.post(f"{CLOUD_WEBHOOK_URL}?advance_queue")
 			queue = trello.get_trello_queue()
 			next_person = queue[0]["name"]
-			await user.send_announcement(moderator=self.user, message=string_to_leetspeak(f"{next_person} is up!")) # type: ignore
+			await user.send_announcement(moderator=self.user, message=f"{next_person} is up!") # type: ignore
 			await user.send_whisper(to_user=next_person.lower(), message=f"Sierra is starting on your dono, {next_person}")
 		elif command == "avatar":
 			if len(input_split) > 1:
 				await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, input_split[1], 2.0)) # type: ignore
 			else:
 				print('Missing parameters for command "avatar"')
+		elif command == "queue_random":
+			if len(input_split) > 1:
+				avatar = get_avatar_info_by_veadotube_name(input_split[1])
+				self.bot_data.random_avatars.append(avatar)
+			else:
+				print('Missing parameters for command "queue_random"')
 		elif command == "headpats" or command == "hug":
 			is_hug = command == "hug"
 			all_interact_timings = get_avatar_info_by_veadotube_name(get_current_avatar()).get("interact_timings", 2.5)
@@ -177,8 +204,23 @@ class Bot(commands.Bot):
 		elif command == "noplanks":
 			await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=False)
 			self.bot_data.planks_disabled = True
+		elif command == "technology_connections":
+			await user.send_announcement(moderator=self.user, message="Technology Connections is a great channel and you should go watch it https://www.youtube.com/@TechnologyConnections", color="purple") # type: ignore
+		elif command == "help":
+			print("""List of commands:
+	say [message] - Make pawb_bot say something in chat.
+	best_button - Press the best button.
+	next - Advance the dono queue. (DOES NOT CURRENTLY WORK)
+	avatar [avatar_name] - Switch to an avatar by its veadotube name. "avatar random" triggers random avatar.
+	queue_random [avatar_name] - Add an avatar to the random avatar queue by its veadotube name.
+	headpats - Trigger headpats.
+	hug - Trigger hug.
+	noplanks - Disable the planks redeem for the rest of this stream.
+	technology_connections - Technology Connections.
+	help - Show this list.
+				""")
 		else:
-			print(f'Unknown command "{command}"')
+			print(f'Unknown command "{command}" (Type "help" for all commands)')
 
 	@routines.routine(delta=datetime.timedelta(seconds=2))
 	async def randomize_connection_offline(self):
@@ -218,26 +260,35 @@ class CommandsChat(commands.Component):
 		self.bot = bot
 		self.bot_data = bot_data
 
-	async def avatar_transition(self, avatar: str, is_switched_to: bool):
+	async def avatar_transition(self, avatar: str):
 		avatar_info = get_avatar_info_by_veadotube_name(avatar)
 		redeems_disabled = avatar_info.get("disable_redeems", [])
 		redeems_enabled = avatar_info.get("enable_redeems", [])
 
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
-		for redeem in redeems_disabled:
-			await user.update_custom_reward(REDEEMS[redeem]["id"], enabled=not is_switched_to)
-		
-		for redeem in redeems_enabled:
-			await user.update_custom_reward(REDEEMS[redeem]["id"], enabled=is_switched_to)
+
+		for redeem in REDEEMS_DEFAULT_DISABLED:
+			redeem_id = REDEEMS[redeem]["id"]
+			already_enabled = (await user.fetch_custom_rewards(ids=[redeem_id]))[0].enabled
+			if not already_enabled and redeem in redeems_enabled:
+				await user.update_custom_reward(redeem_id, enabled=True)
+			elif not redeem in redeems_enabled:
+				await user.update_custom_reward(redeem_id, enabled=False)
+
+		for redeem in REDEEMS_DEFAULT_ENABLED:
+			redeem_id = REDEEMS[redeem]["id"]
+			already_enabled = (await user.fetch_custom_rewards(ids=[redeem_id]))[0].enabled
+			if not already_enabled and not redeem in redeems_disabled:
+				await user.update_custom_reward(redeem_id, enabled=True)
+			elif redeem in redeems_disabled:
+				await user.update_custom_reward(redeem_id, enabled=False)
 
 	async def update_redeem_availability(self, previous_avatar: str, new_avatar: str):
-		await self.avatar_transition(previous_avatar, False)
-		await self.avatar_transition(new_avatar, True)
+		await self.avatar_transition(new_avatar)
 
 	async def advance_action_queue(self):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 		
-		await asyncio.sleep(2)
 		action = self.bot_data.action_queue[0]
 		if action.type == ActionType.AVATAR_CHANGE:
 			previous_avatar = get_current_avatar()
@@ -245,7 +296,7 @@ class CommandsChat(commands.Component):
 			avatar_name = action.avatar
 			new_avatar = str()
 			if len(avatar_info) > 0:
-				if avatar_name == "Kat Avatar":
+				if avatar_name == "Kat":
 					new_avatar = random.choices(["katMale", "katFemale", "katNanite"], weights=[90, 90, 20], k=1)[0]
 				elif avatar_name == "Gremlin":
 					if previous_avatar == "dragonSmall" or previous_avatar == "dragonOverload" or previous_avatar == "dragonMacro":
@@ -255,7 +306,7 @@ class CommandsChat(commands.Component):
 				else:
 					new_avatar = avatar_info["veadotube_name"]
 
-				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{new_avatar}"')
+				set_current_avatar(new_avatar)
 				await self.update_redeem_availability(previous_avatar, new_avatar)
 		elif action.type == ActionType.RANDOM_AVATAR:
 			with open(CURRENT_SONG_PATH) as song_file:
@@ -276,7 +327,7 @@ class CommandsChat(commands.Component):
 				if len(self.bot_data.random_avatars) == 0:
 					self.bot_data.queue_random_avatars(AVATARS)
 
-			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{new_avatar["veadotube_name"]}"')
+			set_current_avatar(new_avatar["veadotube_name"])
 			await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(new_avatar["description"])) # type: ignore
 			await self.update_redeem_availability(previous_avatar, new_avatar["veadotube_name"])
 		elif action.type == ActionType.HEADPATS:
@@ -284,26 +335,26 @@ class CommandsChat(commands.Component):
 		elif action.type == ActionType.HUG:
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "hug"')
 		elif action.type == ActionType.PEER_PRESSURE:
-			current_avatar = get_current_avatar()
-			if current_avatar == "peerPressure":
+			cur_avatar = get_current_avatar()
+			if cur_avatar == "peerPressure":
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level) + 0.5}')
 				await asyncio.sleep(1.05)
 				self.bot_data.peer_pressure_level += 1
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 				if self.bot_data.peer_pressure_level == 5:
-					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "dragonSmall"')
+					set_current_avatar("dragonSmall")
 					await self.update_redeem_availability(current_avatar, "dragonSmall")
-			elif current_avatar == "dragonSmall":
+			elif cur_avatar == "dragonSmall":
 				self.bot_data.peer_pressure_level += 1
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 				await asyncio.sleep(0.5)
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level + 0.5)}')
-				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "peerPressure"')
+				set_current_avatar("peerPressure")
 				await asyncio.sleep(11)
-				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "dragonOverload"')
+				set_current_avatar("dragonOverload")
 				await self.update_redeem_availability(current_avatar, "dragonOverload")
 			else:
-				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "peerPressure"')
+				set_current_avatar("peerPressure")
 				await self.update_redeem_availability(current_avatar, "peerPressure")
 				self.bot_data.peer_pressure_level = 1
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
@@ -314,6 +365,7 @@ class CommandsChat(commands.Component):
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "neutral"')
 
 		self.bot_data.action_queue.popleft()
+		await asyncio.sleep(2)
 		if len(self.bot_data.action_queue) > 0:
 			await self.advance_action_queue()
 
@@ -433,11 +485,11 @@ class CommandsChat(commands.Component):
 		# headpats and hugs.
 		elif payload.reward.id == REDEEMS["HeadPats"]["id"] or payload.reward.id == REDEEMS["Hug!"]["id"]:
 			is_hug = payload.reward.id == REDEEMS["Hug!"]["id"]
-			current_avatar = get_current_avatar()
-			all_interact_timings = get_avatar_info_by_veadotube_name(current_avatar).get("interact_timings", 2.5)
+			cur_avatar = get_current_avatar()
+			all_interact_timings = get_avatar_info_by_veadotube_name(cur_avatar).get("interact_timings", 2.5)
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
-			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, current_avatar, duration))
+			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, cur_avatar, duration))
 		elif payload.reward.id == REDEEMS["Peer Pressure"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0))
 		elif payload.reward.id == REDEEMS["Pressure Overload"]["id"]:
