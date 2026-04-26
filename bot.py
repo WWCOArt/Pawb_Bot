@@ -172,6 +172,9 @@ class Bot(commands.Bot):
 		user = self.create_partialuser(user_id=OWNER_ID)
 
 		input_split = inp.split()
+		if len(input_split) == 0:
+			return
+
 		command = input_split[0].lower().lstrip("/! \t")
 		if command == "say":
 			await send_message(user, sender=self.user, message=" ".join(input_split[1:])) # type: ignore
