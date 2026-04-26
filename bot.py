@@ -189,7 +189,10 @@ class Bot(commands.Bot):
 			await user.send_whisper(to_user=next_person.lower(), message=f"Sierra is starting on your dono, {next_person}")
 		elif command == "avatar":
 			if len(input_split) > 1:
-				await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, input_split[1], 2.0)) # type: ignore
+				if input_split[1] == "random":
+					await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0)) # type: ignore
+				else:
+					await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, input_split[1], 2.0)) # type: ignore
 			else:
 				print('Missing parameters for command "avatar"')
 		elif command == "veado" or command == "veadotube":
