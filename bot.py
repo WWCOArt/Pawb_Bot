@@ -189,6 +189,11 @@ class Bot(commands.Bot):
 				await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, input_split[1], 2.0)) # type: ignore
 			else:
 				print('Missing parameters for command "avatar"')
+		elif command == "veado" or command == "veadotube":
+			if len(input_split) == 2:
+				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents {input_split[1]} set "{input_split[2]}"')
+			else:
+				print('Missing parameters for command "veado"')
 		elif command == "queue_random":
 			if len(input_split) > 1:
 				avatar = get_avatar_info_by_veadotube_name(input_split[1])
@@ -212,6 +217,7 @@ class Bot(commands.Bot):
 	best_button - Press the best button.
 	next - Advance the dono queue. (DOES NOT CURRENTLY WORK)
 	avatar [avatar_name] - Switch to an avatar by its veadotube name. "avatar random" triggers random avatar.
+	veado [node] [request] - Send a request to Veadotube in the format: veadotube -i 0 nodes stateEvents [node] set "[request]"
 	queue_random [avatar_name] - Add an avatar to the random avatar queue by its veadotube name.
 	headpats - Trigger headpats.
 	hug - Trigger hug.
