@@ -8,7 +8,7 @@ import asyncio
 import re
 import requests
 
-VERSION_NUMBER = "0.3.7.0"
+VERSION_NUMBER = "0.3.7.1"
 
 DIANE_TEST_MODE = False
 
@@ -355,7 +355,7 @@ class CommandsChat(commands.Component):
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 				if self.bot_data.peer_pressure_level == 5:
 					set_current_avatar("dragonSmall")
-					await self.update_redeem_availability(current_avatar, "dragonSmall")
+					await self.update_redeem_availability(cur_avatar, "dragonSmall")
 			elif cur_avatar == "dragonSmall":
 				self.bot_data.peer_pressure_level += 1
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
@@ -364,10 +364,10 @@ class CommandsChat(commands.Component):
 				set_current_avatar("peerPressure")
 				await asyncio.sleep(11)
 				set_current_avatar("dragonOverload")
-				await self.update_redeem_availability(current_avatar, "dragonOverload")
+				await self.update_redeem_availability(cur_avatar, "dragonOverload")
 			else:
 				set_current_avatar("peerPressure")
-				await self.update_redeem_availability(current_avatar, "peerPressure")
+				await self.update_redeem_availability(cur_avatar, "peerPressure")
 				self.bot_data.peer_pressure_level = 1
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 
