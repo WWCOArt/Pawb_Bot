@@ -61,10 +61,10 @@ class CommandsMisc(commands.Component):
 			self.bot_data.best_button_broken = False
 			await send_message_context(context, "The best button has been repaired! c:")
 
-	@commands.command()
+	@commands.command(aliases=["diane"])
 	async def fractaldiane(self, context: commands.Context):
 		await send_message_context(context, "Daine (They/She) is the grey familiar with the wagging tail. She makes wonderful music and has contributed many songs to the stream including the ending themes, and any of the character themes you hear. Her music can be found at https://soundcloud.com/fractal-diane. She has also helped significantly in the creation of this bot.")
-		
+
 	# @commands.command()
 	# async def tirgatail(self, context: commands.Context):
 	# 	self.bot_data.database_cursor.execute("SELECT length FROM tirga_tail_lengths WHERE username = ?", (context.author.name)) # type: ignore
