@@ -65,6 +65,10 @@ class CommandsMisc(commands.Component):
 	async def fractaldiane(self, context: commands.Context):
 		await send_message_context(context, "Daine (They/She) is the grey familiar with the wagging tail. She makes wonderful music and has contributed many songs to the stream including the ending themes, and any of the character themes you hear. Her music can be found at https://soundcloud.com/fractal-diane. She has also helped significantly in the creation of this bot.")
 
+	@commands.command(aliases=["flo", "fwo"])
+	async def flomuffin(self, context: commands.Context):
+		await send_message_context(context, "Flomuffin (She/Pup) is Sierra's little sister. She is most often seen on the stream as a white spring wolf, or a gargoyle. She streams as well at https://twitch.tv/flomuffin")
+
 	# @commands.command()
 	# async def tirgatail(self, context: commands.Context):
 	# 	self.bot_data.database_cursor.execute("SELECT length FROM tirga_tail_lengths WHERE username = ?", (context.author.name)) # type: ignore
