@@ -8,7 +8,7 @@ import asyncio
 import re
 import requests
 
-VERSION_NUMBER = "0.3.7.1"
+VERSION_NUMBER = "0.3.7.2"
 
 DIANE_TEST_MODE = False
 
@@ -200,6 +200,17 @@ class Bot(commands.Bot):
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents {input_split[1]} set "{input_split[2]}"')
 			else:
 				print('Missing parameters for command "veado"')
+		elif command == "show" or command == "variable":
+			if len(input_split) > 1:
+				var = input_split[1]
+				try:
+					value = self.bot_data.__getattribute__(var) # THIS IS HORRIBLE
+				except AttributeError:
+					value = self.bot_data.get_variable(var)
+
+				print(f"{var} = {value}")
+			else:
+				print('Missing parameters for command "show"')
 		elif command == "queue_random":
 			if len(input_split) > 1:
 				avatar = get_avatar_info_by_veadotube_name(input_split[1])
