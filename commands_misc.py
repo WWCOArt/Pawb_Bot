@@ -63,7 +63,7 @@ class CommandsMisc(commands.Component):
 
 	@commands.command(aliases=["diane"])
 	async def fractaldiane(self, context: commands.Context):
-		await send_message_context(context, "Daine (They/She) is the grey familiar with the wagging tail. She makes wonderful music and has contributed many songs to the stream including the ending themes, and any of the character themes you hear. Her music can be found at https://soundcloud.com/fractal-diane. She has also helped significantly in the creation of this bot.")
+		await send_message_context(context, "Diane (They/She) is the grey familiar with the flower crown. She makes wonderful music and has contributed many songs to the stream including the ending themes, and any of the character themes you hear. Her music can be found at https://soundcloud.com/fractal-diane. She has also helped significantly in the creation of this bot.")
 
 	@commands.command(aliases=["flo", "fwo"])
 	async def flomuffin(self, context: commands.Context):
