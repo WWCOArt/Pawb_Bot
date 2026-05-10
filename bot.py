@@ -28,6 +28,10 @@ from commands_donos import CommandsDonos
 from commands_misc import CommandsMisc
 from commands_characters import CommandsCharacters
 
+########################################################################################################################
+# Global variable + JSON setup
+########################################################################################################################
+
 bot_secrets = open("secrets.json", encoding="utf8")
 bot_secrets_json = json.load(bot_secrets)
 CLIENT_ID = bot_secrets_json["client_id"]
@@ -63,6 +67,8 @@ if DIANE_TEST_MODE:
 	current_avatar = "sphinx"
 
 ########################################################################################################################
+# Utility functions
+########################################################################################################################
 
 def get_current_avatar() -> str:
 	if DIANE_TEST_MODE:
@@ -82,6 +88,8 @@ def get_avatar_info_by_veadotube_name(veadotube_name: str) -> dict:
 	matches = [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name]
 	return matches[0] if len(matches) > 0 else {}
 
+########################################################################################################################
+# Initial setup + bot start/shutdown
 ########################################################################################################################
 
 class Bot(commands.Bot):
@@ -168,6 +176,10 @@ class Bot(commands.Bot):
 	async def shut_down(self):
 		self.bot_data.database.close()
 
+########################################################################################################################
+# Streamer console commands
+########################################################################################################################
+
 	async def process_input(self, inp: str):
 		user = self.create_partialuser(user_id=OWNER_ID)
 
@@ -235,6 +247,7 @@ class Bot(commands.Bot):
 	next - Advance the dono queue. (DOES NOT CURRENTLY WORK)
 	avatar [avatar_name] - Switch to an avatar by its veadotube name. "avatar random" triggers random avatar.
 	veado [node] [request] - Send a request to Veadotube in the format: veadotube -i 0 nodes stateEvents [node] set "[request]"
+	show [variable_name] - Show the current value of a variable.
 	queue_random [avatar_name] - Add an avatar to the random avatar queue by its veadotube name.
 	headpats - Trigger headpats.
 	hug - Trigger hug.
@@ -244,6 +257,10 @@ class Bot(commands.Bot):
 				""")
 		else:
 			print(f'Unknown command "{command}" (Type "help" for all commands)')
+
+########################################################################################################################
+# Routines that run on a timer
+########################################################################################################################
 
 	@routines.routine(delta=datetime.timedelta(seconds=2))
 	async def randomize_connection_offline(self):
@@ -282,6 +299,10 @@ class CommandsChat(commands.Component):
 	def __init__(self, bot: Bot, bot_data: BotData):
 		self.bot = bot
 		self.bot_data = bot_data
+
+########################################################################################################################
+# Avatar transitions + avatar action queue
+########################################################################################################################
 
 	async def avatar_transition(self, avatar: str):
 		avatar_info = get_avatar_info_by_veadotube_name(avatar)
@@ -397,21 +418,10 @@ class CommandsChat(commands.Component):
 		if len(self.bot_data.action_queue) == 1:
 			await self.advance_action_queue()
 
-	####################################################################################################################
+########################################################################################################################
+# Stream start
+########################################################################################################################
 
-	# Stream Startup. Add the following when time permitted:
-	# Start 1 hour wait to activate planks ⚠️ (Bot.setup_hook)
-	# Set dragonstage to 0 (can we just do a 'pressure reset' function?) ✅ (BotData.__init__)
-	# Trigger Sphinx Avatar ✅ (this function)
-	# Check if first stream for today. ✅ (Bot.setup_hook)
-	# reset the First Redeem ⚠️ (Bot.setup_hook)
-	# Future stuff. Set plush to idle. 
-	# Start the Searching For connection Redeem. ⚠️ (Bot.setup_hook)
-	# Reset the welcome string if first stream of day. ✅ (Bot.setup_hook)
-	# disable any active hype dragons. Set current hype level to 0 ⚠️ (Bot.setup_hook)
-	# set distraction and undo to 0 ✅ (Bot.setup_hook)
-	# Ask diane if this would be under the same async def above the messages, or in a separate one.
-	# Pawb_bot startup messages ✅ (this function)
 	@commands.Component.listener()
 	async def event_stream_online(self, payload: twitchio.StreamOnline):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
@@ -430,7 +440,10 @@ class CommandsChat(commands.Component):
 		await asyncio.sleep(1.0)
 		await send_message(user, sender=self.bot.user, message="Low bandwidth detected. Searching for connection...") # type: ignore
 
-	# pawb_bot shutdown messages
+########################################################################################################################
+# Stream end
+########################################################################################################################
+
 	@commands.Component.listener()
 	async def event_stream_offline(self, payload: twitchio.StreamOffline):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
@@ -439,7 +452,10 @@ class CommandsChat(commands.Component):
 			all_markers = ", ".join([f"{marker[1]:02}:{marker[2]:02}:{marker[3]:02}: {marker[0]}" for marker in self.bot_data.stream_markers])
 			print(f"Reminder to add these stream markers: {all_markers}")
 
-	# listening for chat messages
+########################################################################################################################
+# Chat message functionality
+########################################################################################################################
+
 	@commands.Component.listener()
 	async def event_message(self, payload: twitchio.ChatMessage):
 		if payload.chatter.user == self.bot.user:
@@ -487,7 +503,10 @@ class CommandsChat(commands.Component):
 
 			self.bot_data.add_greeting_said(payload.chatter.name) # type: ignore
 
-	# channel point stuff
+########################################################################################################################
+# Redeems
+########################################################################################################################
+
 	@commands.Component.listener()
 	async def event_custom_redemption_add(self, payload: twitchio.ChannelPointsRedemptionAdd):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
@@ -534,7 +553,10 @@ class CommandsChat(commands.Component):
 					new_cost = random.randrange(2, 999)
 					await user.update_custom_reward(redeem["id"], cost=new_cost)
 
-	# # hype dragons
+########################################################################################################################
+# Hype trains + hype dragons
+########################################################################################################################
+
 	@commands.Component.listener()
 	async def event_hype_train_progress(self, payload: twitchio.HypeTrainProgress):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
@@ -560,7 +582,6 @@ class CommandsChat(commands.Component):
 			self.bot_data.store_variable("current_hype_level", payload.level)
 			self.bot_data.store_variable("highest_hype_level", payload.level)
 
-	# Hype train end
 	@commands.Component.listener()
 	async def event_hype_train_end(self, payload: twitchio.HypeTrainEnd):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
@@ -584,7 +605,10 @@ class CommandsChat(commands.Component):
 
 		self.bot_data.store_variable("current_hype_level", 0)
 
-	# I think this is the shoutout
+########################################################################################################################
+# Other commands
+########################################################################################################################
+
 	@commands.command(aliases=["so"])
 	async def shoutout(self, context: commands.Context):
 		if context.author.moderator or context.author.broadcaster:	 # type: ignore
@@ -613,6 +637,8 @@ class CommandsChat(commands.Component):
 
 		await send_message_context(context, "Stream Marker has been created!", reply=True)
 
+########################################################################################################################
+# Undo-related functions
 ########################################################################################################################
 
 def increment_undo_actual(bot: Bot):
