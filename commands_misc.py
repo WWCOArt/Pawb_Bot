@@ -69,6 +69,10 @@ class CommandsMisc(commands.Component):
 	async def flomuffin(self, context: commands.Context):
 		await send_message_context(context, "Flomuffin (She/Pup) is Sierra's little sister. She is most often seen on the stream as a white spring wolf, or a gargoyle. She streams as well at https://twitch.tv/flomuffin")
 
+	@commands.command(aliases=["games","distractions"])
+	async def powerword(self, context: commands.Context):
+		await send_message_context(context, "Available options for Powerword Distraction: Tetris Effect, Not Tetris 2, Sand Tetris, Broomsweeper, Raccooin, Suborbital Salvage, Pinball, Wireworks, Distance, Stackflow , Peglin, Race the Sun, Super hexagon, Gambonanza, Shotgun King.")
+
 	# @commands.command()
 	# async def tirgatail(self, context: commands.Context):
 	# 	self.bot_data.database_cursor.execute("SELECT length FROM tirga_tail_lengths WHERE username = ?", (context.author.name)) # type: ignore
