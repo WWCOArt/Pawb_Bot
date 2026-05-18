@@ -374,10 +374,10 @@ class CommandsChat(commands.Component):
 			set_current_avatar(new_avatar["veadotube_name"])
 			await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(new_avatar["description"])) # type: ignore
 			await self.update_redeem_availability(previous_avatar, new_avatar["veadotube_name"])
-		elif action.type == ActionType.HEADPATS:
-			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "headpats"')
-		elif action.type == ActionType.HUG:
-			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "hug"')
+		# elif action.type == ActionType.HEADPATS:
+		# 	subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "headpats"')
+		# elif action.type == ActionType.HUG:
+		# 	subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "hug"')
 		elif action.type == ActionType.PEER_PRESSURE:
 			cur_avatar = get_current_avatar()
 			if cur_avatar == "peerPressure":
