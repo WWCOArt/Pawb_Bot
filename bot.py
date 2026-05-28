@@ -122,12 +122,12 @@ class Bot(commands.Bot):
 		payload_hypetrain_end = eventsub.HypeTrainEndSubscription(broadcaster_user_id=self.owner_id)
 
 		# alerts
-		payload_follow = eventsub.ChannelFollowSubscription(broadcaster_user_id=self.owner_id)
-		payload_subscribe = eventsub.ChannelSubscribeSubscription(broadcaster_user_id=self.owner_id)
-		payload_resubscribe = eventsub.ChannelSubscribeMessageSubscription(broadcaster_user_id=self.owner_id)
-		payload_giftsubs = eventsub.ChannelSubscriptionGiftSubscription(broadcaster_user_id=self.owner_id)
-		payload_raid = eventsub.ChannelRaidSubscription(broadcaster_user_id=self.owner_id)
-		payload_bits = eventsub.ChannelBitsUseSubscription(broadcaster_user_id=self.owner_id)
+		#payload_follow = eventsub.ChannelFollowSubscription(broadcaster_user_id=self.owner_id)
+		#payload_subscribe = eventsub.ChannelSubscribeSubscription(broadcaster_user_id=self.owner_id)
+		#payload_resubscribe = eventsub.ChannelSubscribeMessageSubscription(broadcaster_user_id=self.owner_id)
+		#payload_giftsubs = eventsub.ChannelSubscriptionGiftSubscription(broadcaster_user_id=self.owner_id)
+		#payload_raid = eventsub.ChannelRaidSubscription(broadcaster_user_id=self.owner_id)
+		#payload_bits = eventsub.ChannelBitsUseSubscription(broadcaster_user_id=self.owner_id)
 
 		await self.subscribe_websocket(payload=payload_online)
 		await self.subscribe_websocket(payload=payload_offline)
