@@ -27,7 +27,8 @@ class BotData():
 	
 	def get_variable(self, name: str):
 		self.database_cursor.execute("SELECT value FROM variables WHERE name = ?", (name,))
-		return self.database_cursor.fetchone()[0]
+		result = self.database_cursor.fetchone()
+		return result[0] if result != None else None
 		
 	def store_variable(self, name: str, value):
 		self.database_cursor.execute("UPDATE variables SET value = ? WHERE name = ?", (value, name))

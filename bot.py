@@ -120,6 +120,15 @@ class Bot(commands.Bot):
 		payload_channelpoints = eventsub.ChannelPointsRedeemAddSubscription(broadcaster_user_id=self.owner_id)
 		payload_hypetrain_progress = eventsub.HypeTrainProgressSubscription(broadcaster_user_id=self.owner_id)
 		payload_hypetrain_end = eventsub.HypeTrainEndSubscription(broadcaster_user_id=self.owner_id)
+
+		# alerts
+		payload_follow = eventsub.ChannelFollowSubscription(broadcaster_user_id=self.owner_id)
+		payload_subscribe = eventsub.ChannelSubscribeSubscription(broadcaster_user_id=self.owner_id)
+		payload_resubscribe = eventsub.ChannelSubscribeMessageSubscription(broadcaster_user_id=self.owner_id)
+		payload_giftsubs = eventsub.ChannelSubscriptionGiftSubscription(broadcaster_user_id=self.owner_id)
+		payload_raid = eventsub.ChannelRaidSubscription(broadcaster_user_id=self.owner_id)
+		payload_bits = eventsub.ChannelBitsUseSubscription(broadcaster_user_id=self.owner_id)
+
 		await self.subscribe_websocket(payload=payload_online)
 		await self.subscribe_websocket(payload=payload_offline)
 		await self.subscribe_websocket(payload=payload_chatmessage)
@@ -206,7 +215,7 @@ class Bot(commands.Bot):
 				else:
 					await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, input_split[1], 2.0)) # type: ignore
 			else:
-				print('Missing parameters for command "avatar"')
+				print(f"Current avatar: {get_current_avatar()}")
 		elif command == "veado" or command == "veadotube":
 			if len(input_split) == 2:
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents {input_split[1]} set "{input_split[2]}"')
@@ -604,6 +613,13 @@ class CommandsChat(commands.Component):
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 disabled.") # type: ignore
 
 		self.bot_data.store_variable("current_hype_level", 0)
+
+########################################################################################################################
+# Alerts
+########################################################################################################################
+
+	#@commands.Component.listener()
+	#async def event_
 
 ########################################################################################################################
 # Other commands
