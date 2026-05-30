@@ -12,3 +12,6 @@ class AvatarAction:
 		self.type = type_
 		self.avatar = avatar
 		self.duration = duration
+
+	def __str__(self) -> str:
+		return f"[{self.type}, {self.avatar}, {self.duration}]"

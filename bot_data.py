@@ -1,9 +1,9 @@
 import random
 import sqlite3
 import re
-from collections import deque
 from avatar_action import AvatarAction
 import datetime
+from collections import deque
 
 import utility_functions
 
@@ -25,6 +25,10 @@ class BotData():
 		self.queue_random_avatars(avatars)
 
 		self.vars_regex = re.compile(r"\$\{(.+?)\}")
+
+	def get_action_queue_string(self) -> str:
+		#return str([str(a) for a in self.action_queue.])
+		return str(self.action_queue)
 	
 	def get_variable(self, name: str):
 		self.database_cursor.execute("SELECT value FROM variables WHERE name = ?", (name,))

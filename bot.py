@@ -7,6 +7,7 @@ import keyboard
 import asyncio
 import re
 import requests
+import traceback
 
 VERSION_NUMBER = "0.3.7.2"
 
@@ -76,7 +77,8 @@ LOGGER: logging.Logger = logging.getLogger("Bot")
 
 def set_current_avatar(bot_data: BotData, av: str):
 	bot_data.current_avatar = av
-	subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
+	if not DIANE_TEST_MODE:
+		subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
 
 def get_avatar_info_by_veadotube_name(veadotube_name: str) -> dict:
 	matches = [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name]
@@ -137,6 +139,8 @@ class Bot(commands.Bot):
 		await self.add_component(CommandsCharacters(self.bot_data))
 
 		user = self.create_partialuser(user_id=OWNER_ID)
+
+		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "sphinx", 1.0)) # type: ignore
 
 		# reset everything if this is a new stream day
 		last_start_time = self.bot_data.get_last_start_time()
@@ -336,6 +340,8 @@ class CommandsChat(commands.Component):
 	async def advance_action_queue(self):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 		
+		#print(f"Advancing queue ({self.bot_data.get_action_queue_string()})")
+		#print(traceback.print_stack())
 		action = self.bot_data.action_queue[0]
 		if action.type == ActionType.AVATAR_CHANGE:
 			previous_avatar = self.bot_data.current_avatar
@@ -383,18 +389,22 @@ class CommandsChat(commands.Component):
 		# 	subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "hug"')
 		elif action.type == ActionType.PEER_PRESSURE:
 			if self.bot_data.current_avatar == "peerPressure":
-				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level) + 0.5}')
+				if not DIANE_TEST_MODE:
+					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level) + 0.5}')
 				await asyncio.sleep(1.05)
 				self.bot_data.peer_pressure_level += 1
-				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
+				if not DIANE_TEST_MODE:
+					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 				if self.bot_data.peer_pressure_level == 5:
 					set_current_avatar(self.bot_data, "dragonSmall")
 					await self.update_redeem_availability(self.bot_data.current_avatar, "dragonSmall")
 			elif self.bot_data.current_avatar == "dragonSmall":
 				self.bot_data.peer_pressure_level += 1
-				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
+				if not DIANE_TEST_MODE:
+					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 				await asyncio.sleep(0.5)
-				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level + 0.5)}')
+				if not DIANE_TEST_MODE:
+					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level + 0.5)}')
 				set_current_avatar(self.bot_data, "peerPressure")
 				await asyncio.sleep(11)
 				set_current_avatar(self.bot_data, "dragonOverload")
@@ -403,20 +413,21 @@ class CommandsChat(commands.Component):
 				set_current_avatar(self.bot_data, "peerPressure")
 				await self.update_redeem_availability(self.bot_data.current_avatar, "peerPressure")
 				self.bot_data.peer_pressure_level = 1
-				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
+				if not DIANE_TEST_MODE:
+					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 
 		await asyncio.sleep(action.duration)
 
-		if action.type == ActionType.HEADPATS or action.type == ActionType.HUG:
+		if action.type == ActionType.HEADPATS or action.type == ActionType.HUG and not DIANE_TEST_MODE:
 			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "neutral"')
 
 		self.bot_data.action_queue.popleft()
-		await asyncio.sleep(2)
 		if len(self.bot_data.action_queue) > 0:
 			await self.advance_action_queue()
 
 	async def queue_action(self, action: AvatarAction):
 		self.bot_data.action_queue.append(action)
+		#print(f"Adding to queue ({self.bot_data.get_action_queue_string()})")
 		if len(self.bot_data.action_queue) == 1:
 			await self.advance_action_queue()
 
@@ -515,7 +526,10 @@ class CommandsChat(commands.Component):
 
 		# When redeem is triggered, first check if the title matches any of the avatar redeems. If so, add the avatar swap to the queue.
 		if payload.reward.title in AVATARS:
-			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS[payload.reward.title]["veadotube_name"], 2.0))
+			if payload.reward.title == "Peer Pressure":
+				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0))
+			else:
+				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS[payload.reward.title]["veadotube_name"], 2.0))
 		#if it's not in the avatar list, compare to other redeems
 		elif payload.reward.id == REDEEMS["Random Avatar"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0))
