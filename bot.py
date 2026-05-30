@@ -63,26 +63,20 @@ with open("greetings.json", encoding="utf8") as greetings_file:
 
 LOGGER: logging.Logger = logging.getLogger("Bot")
 
-if DIANE_TEST_MODE:
-	current_avatar = "sphinx"
-
 ########################################################################################################################
 # Utility functions
 ########################################################################################################################
 
-def get_current_avatar() -> str:
-	if DIANE_TEST_MODE:
-		return current_avatar
-	else:
-		result = subprocess.Popen("veadotube -i 0 nodes stateEvents avatarSwap peek", stdout=subprocess.PIPE)
-		return result.stdout.read().decode() # type: ignore
+#def get_current_avatar() -> str:
+#	if DIANE_TEST_MODE:
+#		return current_avatar
+#	else:
+#		result = subprocess.Popen("veadotube -i 0 nodes stateEvents avatarSwap peek", stdout=subprocess.PIPE)
+#		return result.stdout.read().decode() # type: ignore
 
-def set_current_avatar(av: str):
-	if DIANE_TEST_MODE:
-		current_avatar = av
-		LOGGER.info(f"New avatar: {av}")
-	else:
-		subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
+def set_current_avatar(bot_data: BotData, av: str):
+	bot_data.current_avatar = av
+	subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
 
 def get_avatar_info_by_veadotube_name(veadotube_name: str) -> dict:
 	matches = [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name]
@@ -215,7 +209,7 @@ class Bot(commands.Bot):
 				else:
 					await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, input_split[1], 2.0)) # type: ignore
 			else:
-				print(f"Current avatar: {get_current_avatar()}")
+				print(f"Current avatar: {self.bot_data.current_avatar}")
 		elif command == "veado" or command == "veadotube":
 			if len(input_split) == 2:
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents {input_split[1]} set "{input_split[2]}"')
@@ -240,7 +234,7 @@ class Bot(commands.Bot):
 				print('Missing parameters for command "queue_random"')
 		elif command == "headpats" or command == "hug":
 			is_hug = command == "hug"
-			all_interact_timings = get_avatar_info_by_veadotube_name(get_current_avatar()).get("interact_timings", 2.5)
+			all_interact_timings = get_avatar_info_by_veadotube_name(self.bot_data.current_avatar).get("interact_timings", 2.5)
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get(command, 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(("default", 2.5))
 			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration)) # type: ignore
@@ -344,7 +338,7 @@ class CommandsChat(commands.Component):
 		
 		action = self.bot_data.action_queue[0]
 		if action.type == ActionType.AVATAR_CHANGE:
-			previous_avatar = get_current_avatar()
+			previous_avatar = self.bot_data.current_avatar
 			avatar_info = get_avatar_info_by_veadotube_name(action.avatar)
 			avatar_name = action.avatar
 			new_avatar = str()
@@ -359,13 +353,13 @@ class CommandsChat(commands.Component):
 				else:
 					new_avatar = avatar_info["veadotube_name"]
 
-				set_current_avatar(new_avatar)
+				set_current_avatar(self.bot_data, new_avatar)
 				await self.update_redeem_availability(previous_avatar, new_avatar)
 		elif action.type == ActionType.RANDOM_AVATAR:
 			with open(CURRENT_SONG_PATH) as song_file:
 				current_song = song_file.read().strip()
 			
-			previous_avatar = get_current_avatar()
+			previous_avatar = self.bot_data.current_avatar
 			new_avatar = {}
 			song_override = False
 			for avatar in AVATARS.values():
@@ -380,7 +374,7 @@ class CommandsChat(commands.Component):
 				if len(self.bot_data.random_avatars) == 0:
 					self.bot_data.queue_random_avatars(AVATARS)
 
-			set_current_avatar(new_avatar["veadotube_name"])
+			set_current_avatar(self.bot_data, new_avatar["veadotube_name"])
 			await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(new_avatar["description"])) # type: ignore
 			await self.update_redeem_availability(previous_avatar, new_avatar["veadotube_name"])
 		# elif action.type == ActionType.HEADPATS:
@@ -388,27 +382,26 @@ class CommandsChat(commands.Component):
 		# elif action.type == ActionType.HUG:
 		# 	subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "hug"')
 		elif action.type == ActionType.PEER_PRESSURE:
-			cur_avatar = get_current_avatar()
-			if cur_avatar == "peerPressure":
+			if self.bot_data.current_avatar == "peerPressure":
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level) + 0.5}')
 				await asyncio.sleep(1.05)
 				self.bot_data.peer_pressure_level += 1
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 				if self.bot_data.peer_pressure_level == 5:
-					set_current_avatar("dragonSmall")
-					await self.update_redeem_availability(cur_avatar, "dragonSmall")
-			elif cur_avatar == "dragonSmall":
+					set_current_avatar(self.bot_data, "dragonSmall")
+					await self.update_redeem_availability(self.bot_data.current_avatar, "dragonSmall")
+			elif self.bot_data.current_avatar == "dragonSmall":
 				self.bot_data.peer_pressure_level += 1
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 				await asyncio.sleep(0.5)
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level + 0.5)}')
-				set_current_avatar("peerPressure")
+				set_current_avatar(self.bot_data, "peerPressure")
 				await asyncio.sleep(11)
-				set_current_avatar("dragonOverload")
-				await self.update_redeem_availability(cur_avatar, "dragonOverload")
+				set_current_avatar(self.bot_data, "dragonOverload")
+				await self.update_redeem_availability(self.bot_data.current_avatar, "dragonOverload")
 			else:
-				set_current_avatar("peerPressure")
-				await self.update_redeem_availability(cur_avatar, "peerPressure")
+				set_current_avatar(self.bot_data, "peerPressure")
+				await self.update_redeem_availability(self.bot_data.current_avatar, "peerPressure")
 				self.bot_data.peer_pressure_level = 1
 				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 
@@ -529,11 +522,10 @@ class CommandsChat(commands.Component):
 		# headpats and hugs.
 		elif payload.reward.id == REDEEMS["HeadPats"]["id"] or payload.reward.id == REDEEMS["Hug!"]["id"]:
 			is_hug = payload.reward.id == REDEEMS["Hug!"]["id"]
-			cur_avatar = get_current_avatar()
-			all_interact_timings = get_avatar_info_by_veadotube_name(cur_avatar).get("interact_timings", 2.5)
+			all_interact_timings = get_avatar_info_by_veadotube_name(self.bot_data.current_avatar).get("interact_timings", 2.5)
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
-			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, cur_avatar, duration))
+			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.current_avatar, duration))
 		elif payload.reward.id == REDEEMS["Peer Pressure"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0))
 		elif payload.reward.id == REDEEMS["Pressure Overload"]["id"]:
@@ -546,8 +538,9 @@ class CommandsChat(commands.Component):
 					await user.update_custom_reward(redeem["id"], cost=random.randrange(2, 999) if self.bot_data.silly_mode else redeem["base_price"])
 		elif payload.reward.id == REDEEMS["This Redeem does nothing"]["id"]:
 			nothing_cost = self.bot_data.get_variable("nothing_cost")
-			self.bot_data.store_variable("nothing_cost", nothing_cost + 1)
-			await user.update_custom_reward(REDEEMS["This Redeem does nothing"]["id"], cost=nothing_cost, prompt=f"But each time it's redeemed, the cost becomes one higher. How high will it go? Last redeemed by {payload.user.display_name}.")
+			if nothing_cost != None:
+				self.bot_data.store_variable("nothing_cost", nothing_cost + 1)
+				await user.update_custom_reward(REDEEMS["This Redeem does nothing"]["id"], cost=nothing_cost, prompt=f"But each time it's redeemed, the cost becomes one higher. How high will it go? Last redeemed by {payload.user.display_name}.")
 		elif payload.reward.id == REDEEMS["Create a Fox Rule!"]["id"]:
 			self.bot_data.add_foxrule(payload.user.display_name, payload.user_input) # type: ignore
 			await send_message(user, sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
@@ -571,7 +564,7 @@ class CommandsChat(commands.Component):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 
 		current_hype_level = self.bot_data.get_variable("current_hype_level")
-		if payload.level > current_hype_level:
+		if current_hype_level != None and payload.level > current_hype_level:
 			if payload.level == 1:
 				await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
@@ -597,20 +590,21 @@ class CommandsChat(commands.Component):
 		current_level = self.bot_data.get_variable("current_hype_level")
 		highest_level = self.bot_data.get_variable("highest_hype_level")
 
-		if highest_level < 6:
-			await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=False)
-			if current_level > 4:
-				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 disabled.") # type: ignore
+		if highest_level != None and current_level != None:
+			if highest_level < 6:
+				await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=False)
+				if current_level > 4:
+					await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 disabled.") # type: ignore
 
-		if highest_level < 4:
-			await user.update_custom_reward(REDEEMS["HypeDragon3"]["id"], enabled=False)
-			if current_level > 2:
-				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 disabled.") # type: ignore
+			if highest_level < 4:
+				await user.update_custom_reward(REDEEMS["HypeDragon3"]["id"], enabled=False)
+				if current_level > 2:
+					await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 disabled.") # type: ignore
 
-		if highest_level < 2:
-			await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=False)
-			if current_level > 0:
-				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 disabled.") # type: ignore
+			if highest_level < 2:
+				await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=False)
+				if current_level > 0:
+					await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 disabled.") # type: ignore
 
 		self.bot_data.store_variable("current_hype_level", 0)
 

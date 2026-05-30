@@ -9,6 +9,7 @@ import utility_functions
 
 class BotData():
 	def __init__(self, avatars: dict):
+		self.current_avatar = "sphinx"
 		self.current_queue_size = 0
 		self.silly_mode = False
 		self.best_button_broken = False
