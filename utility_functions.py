@@ -17,6 +17,13 @@ class PronounType(Enum):
 	THEIR = 2
 	THEIRS = 3
 
+PRONOUNS_THEY = {
+	PronounType.THEY: "they",
+	PronounType.THEM: "them",
+	PronounType.THEIR: "their",
+	PronounType.THEIRS: "theirs",
+}
+
 PRONOUNS = {
 	"hehim": {
 		PronounType.THEY: "he",
@@ -30,15 +37,60 @@ PRONOUNS = {
 		PronounType.THEIR: "her",
 		PronounType.THEIRS: "hers",
 	},
-	"theythem": {
-		PronounType.THEY: "they",
-		PronounType.THEM: "them",
-		PronounType.THEIR: "their",
-		PronounType.THEIRS: "theirs",
+	"itits": {
+		PronounType.THEY: "it",
+		PronounType.THEM: "it",
+		PronounType.THEIR: "its",
+		PronounType.THEIRS: "its",
 	},
+	"faefaer": {
+		PronounType.THEY: "fae",
+		PronounType.THEM: "fae",
+		PronounType.THEIR: "faer",
+		PronounType.THEIRS: "faers",
+	},
+	"xexem": {
+		PronounType.THEY: "xe",
+		PronounType.THEM: "xem",
+		PronounType.THEIR: "xir",
+		PronounType.THEIRS: "xirs",
+	},
+	"aeaer": {
+		PronounType.THEY: "ae",
+		PronounType.THEM: "ae",
+		PronounType.THEIR: "aer",
+		PronounType.THEIRS: "aers",
+	},
+	"eem": {
+		PronounType.THEY: "e",
+		PronounType.THEM: "em",
+		PronounType.THEIR: "eir",
+		PronounType.THEIRS: "eirs",
+	},
+	"perper": {
+		PronounType.THEY: "per",
+		PronounType.THEM: "per",
+		PronounType.THEIR: "per",
+		PronounType.THEIRS: "pers",
+	},
+	"vever": {
+		PronounType.THEY: "ve",
+		PronounType.THEM: "ver",
+		PronounType.THEIR: "ver",
+		PronounType.THEIRS: "vers",
+	},
+	"ziehir": {
+		PronounType.THEY: "zie",
+		PronounType.THEM: "hir",
+		PronounType.THEIR: "hir",
+		PronounType.THEIRS: "hirs",
+	},
+	"theythem": PRONOUNS_THEY,
+	"other": PRONOUNS_THEY,
+	"any": PRONOUNS_THEY,
 }
 
-def get_pronouns(username: str, type_: PronounType) -> str:
+def get_pronouns(username: str, type_: PronounType, capitalize: bool = False) -> str:
 	result = requests.get(f"https://pronouns.alejo.io/v1/users/{username}").text
 
 	pronoun = "theythem"
@@ -46,7 +98,8 @@ def get_pronouns(username: str, type_: PronounType) -> str:
 		json1 = json.loads(result)
 		pronoun = json1["pronoun_id"]
 
-	return PRONOUNS[pronoun][type_]
+	retval = PRONOUNS.get(pronoun, PRONOUNS_THEY)[type_]
+	return retval.capitalize() if capitalize else retval
 
 
 def string_to_leetspeak(string: str) -> str:
