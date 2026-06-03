@@ -3,6 +3,7 @@ __pycache__/
 
 bot_data.db
 avatars.json
+avatars_old.json
 secrets.json
 config.json
 redeems.json

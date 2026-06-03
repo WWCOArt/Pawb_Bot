@@ -9,7 +9,7 @@ import re
 import requests
 import traceback
 
-VERSION_NUMBER = "0.3.8"
+VERSION_NUMBER = "0.3.9"
 
 DIANE_TEST_MODE = False
 
@@ -140,8 +140,8 @@ class Bot(commands.Bot):
 
 		user = self.create_partialuser(user_id=OWNER_ID)
 
-		if DIANE_TEST_MODE:
-			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "sphinx", 1.0)) # type: ignore
+		# if DIANE_TEST_MODE:
+		# 	await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "sphinx", 1.0)) # type: ignore
 
 		# reset everything if this is a new stream day
 		last_start_time = self.bot_data.get_last_start_time()
@@ -419,8 +419,8 @@ class CommandsChat(commands.Component):
 
 		await asyncio.sleep(action.duration)
 
-		if action.type == ActionType.HEADPATS or action.type == ActionType.HUG and not DIANE_TEST_MODE:
-			subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "neutral"')
+		# if action.type == ActionType.HEADPATS or action.type == ActionType.HUG and not DIANE_TEST_MODE:
+		# 	subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "neutral"')
 
 		self.bot_data.action_queue.popleft()
 		if len(self.bot_data.action_queue) > 0:
