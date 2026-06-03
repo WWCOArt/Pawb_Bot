@@ -9,7 +9,7 @@ import re
 import requests
 import traceback
 
-VERSION_NUMBER = "0.3.7.2"
+VERSION_NUMBER = "0.3.8"
 
 DIANE_TEST_MODE = False
 
@@ -118,12 +118,12 @@ class Bot(commands.Bot):
 		payload_hypetrain_end = eventsub.HypeTrainEndSubscription(broadcaster_user_id=self.owner_id)
 
 		# alerts
-		#payload_follow = eventsub.ChannelFollowSubscription(broadcaster_user_id=self.owner_id)
-		#payload_subscribe = eventsub.ChannelSubscribeSubscription(broadcaster_user_id=self.owner_id)
-		#payload_resubscribe = eventsub.ChannelSubscribeMessageSubscription(broadcaster_user_id=self.owner_id)
-		#payload_giftsubs = eventsub.ChannelSubscriptionGiftSubscription(broadcaster_user_id=self.owner_id)
-		#payload_raid = eventsub.ChannelRaidSubscription(broadcaster_user_id=self.owner_id)
-		#payload_bits = eventsub.ChannelBitsUseSubscription(broadcaster_user_id=self.owner_id)
+		payload_follow = eventsub.ChannelFollowSubscription(broadcaster_user_id=self.owner_id, moderator_user_id=self.owner_id)
+		payload_subscribe = eventsub.ChannelSubscribeSubscription(broadcaster_user_id=self.owner_id)
+		payload_resubscribe = eventsub.ChannelSubscribeMessageSubscription(broadcaster_user_id=self.owner_id)
+		payload_giftsubs = eventsub.ChannelSubscriptionGiftSubscription(broadcaster_user_id=self.owner_id)
+		payload_raid = eventsub.ChannelRaidSubscription(to_broadcaster_user_id=self.owner_id)
+		payload_bits = eventsub.ChannelBitsUseSubscription(broadcaster_user_id=self.owner_id)
 
 		await self.subscribe_websocket(payload=payload_online)
 		await self.subscribe_websocket(payload=payload_offline)
@@ -131,6 +131,13 @@ class Bot(commands.Bot):
 		await self.subscribe_websocket(payload=payload_channelpoints)
 		await self.subscribe_websocket(payload=payload_hypetrain_progress)
 		await self.subscribe_websocket(payload=payload_hypetrain_end)
+
+		#await self.subscribe_websocket(payload=payload_follow)
+		#await self.subscribe_websocket(payload=payload_subscribe)
+		#await self.subscribe_websocket(payload=payload_resubscribe)
+		#await self.subscribe_websocket(payload=payload_giftsubs)
+		#await self.subscribe_websocket(payload=payload_raid)
+		#await self.subscribe_websocket(payload=payload_bits)
 
 		await self.add_component(CommandsRules(self.bot_data))
 		await self.add_component(CommandsChat(self, self.bot_data))
@@ -140,7 +147,8 @@ class Bot(commands.Bot):
 
 		user = self.create_partialuser(user_id=OWNER_ID)
 
-		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "sphinx", 1.0)) # type: ignore
+		if DIANE_TEST_MODE:
+			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "sphinx", 1.0)) # type: ignore
 
 		# reset everything if this is a new stream day
 		last_start_time = self.bot_data.get_last_start_time()
