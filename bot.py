@@ -532,7 +532,7 @@ class CommandsChat(commands.Component):
 			wait_time = random.uniform(300, 1500)
 			await asyncio.sleep(wait_time)
 			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS["Wish on a Star"]["veadotube_name"], 2.0))
-			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time // 60} minutes ago... and {get_pronouns(payload.user.name, PronounType.THEIR)} wish came true!") # type: ignore
+			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time // 60} minutes ago... and {get_pronouns(payload.user.name, PronounType.THEIR)} wish just came true!") # type: ignore
 		elif payload.reward.title in AVATARS:
 			if payload.reward.title == "Peer Pressure":
 				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0))
