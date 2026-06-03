@@ -9,6 +9,46 @@ from CnyZodiac import ChineseNewYearZodiac as cnyz
 from twitchio import PartialUser
 from twitchio.ext import commands
 
+from enum import Enum
+
+class PronounType(Enum):
+	THEY = 0
+	THEM = 1
+	THEIR = 2
+	THEIRS = 3
+
+PRONOUNS = {
+	"hehim": {
+		PronounType.THEY: "he",
+		PronounType.THEM: "him",
+		PronounType.THEIR: "his",
+		PronounType.THEIRS: "his",
+	},
+	"sheher": {
+		PronounType.THEY: "she",
+		PronounType.THEM: "her",
+		PronounType.THEIR: "her",
+		PronounType.THEIRS: "hers",
+	},
+	"theythem": {
+		PronounType.THEY: "they",
+		PronounType.THEM: "them",
+		PronounType.THEIR: "their",
+		PronounType.THEIRS: "theirs",
+	},
+}
+
+def get_pronouns(username: str, type_: PronounType) -> str:
+	result = requests.get(f"https://pronouns.alejo.io/v1/users/{username}").text
+
+	pronoun = "theythem"
+	if result != "not_found":
+		json1 = json.loads(result)
+		pronoun = json1["pronoun_id"]
+
+	return PRONOUNS[pronoun][type_]
+
+
 def string_to_leetspeak(string: str) -> str:
 	table = {
 		"o": "0",

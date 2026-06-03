@@ -68,13 +68,6 @@ LOGGER: logging.Logger = logging.getLogger("Bot")
 # Utility functions
 ########################################################################################################################
 
-#def get_current_avatar() -> str:
-#	if DIANE_TEST_MODE:
-#		return current_avatar
-#	else:
-#		result = subprocess.Popen("veadotube -i 0 nodes stateEvents avatarSwap peek", stdout=subprocess.PIPE)
-#		return result.stdout.read().decode() # type: ignore
-
 def set_current_avatar(bot_data: BotData, av: str):
 	bot_data.current_avatar = av
 	if not DIANE_TEST_MODE:
@@ -237,7 +230,7 @@ class Bot(commands.Bot):
 
 				print(f"{var} = {value}")
 			else:
-				print('Missing parameters for command "show"')
+				print(" ".join([var for var in dir(self.bot_data) if not var.startswith("__")]))
 		elif command == "queue_random":
 			if len(input_split) > 1:
 				avatar = get_avatar_info_by_veadotube_name(input_split[1])
@@ -262,7 +255,7 @@ class Bot(commands.Bot):
 	next - Advance the dono queue. (DOES NOT CURRENTLY WORK)
 	avatar [avatar_name] - Switch to an avatar by its veadotube name. "avatar random" triggers random avatar.
 	veado [node] [request] - Send a request to Veadotube in the format: veadotube -i 0 nodes stateEvents [node] set "[request]"
-	show [variable_name] - Show the current value of a variable.
+	show [variable_name] - Show the current value of a variable. With no argument, it will show all variable names in the BotData class.
 	queue_random [avatar_name] - Add an avatar to the random avatar queue by its veadotube name.
 	headpats - Trigger headpats.
 	hug - Trigger hug.
@@ -533,7 +526,14 @@ class CommandsChat(commands.Component):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 
 		# When redeem is triggered, first check if the title matches any of the avatar redeems. If so, add the avatar swap to the queue.
-		if payload.reward.title in AVATARS:
+		# ...except first check for wish on a star because it's the one exception to that
+		if payload.reward.id == REDEEMS["Wish on a Star"]["id"]:
+			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star...") # type: ignore
+			wait_time = random.uniform(300, 1500)
+			await asyncio.sleep(wait_time)
+			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS["Wish on a Star"]["veadotube_name"], 2.0))
+			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name}'s wish came true!") # type: ignore
+		elif payload.reward.title in AVATARS:
 			if payload.reward.title == "Peer Pressure":
 				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0))
 			else:
