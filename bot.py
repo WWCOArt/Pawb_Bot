@@ -396,7 +396,7 @@ class CommandsChat(commands.Component):
 				self.bot_data.peer_pressure_level += 1
 				if not DIANE_TEST_MODE:
 					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
-				if self.bot_data.peer_pressure_level == 5:
+				if self.bot_data.peer_pressure_level == 6:
 					set_current_avatar(self.bot_data, "dragonSmall")
 					await self.update_redeem_availability(self.bot_data.current_avatar, "dragonSmall")
 			elif self.bot_data.current_avatar == "dragonSmall":
@@ -407,7 +407,7 @@ class CommandsChat(commands.Component):
 				if not DIANE_TEST_MODE:
 					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level + 0.5)}')
 				set_current_avatar(self.bot_data, "peerPressure")
-				await asyncio.sleep(11)
+				await asyncio.sleep(10)
 				set_current_avatar(self.bot_data, "dragonOverload")
 				await self.update_redeem_availability(self.bot_data.current_avatar, "dragonOverload")
 			else:
@@ -529,7 +529,7 @@ class CommandsChat(commands.Component):
 		# ...except first check for wish on a star because it's the one exception to that
 		if payload.reward.id == REDEEMS["Wish on a Star"]["id"]:
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star...") # type: ignore
-			wait_time = random.uniform(300, 1500)
+			wait_time = random.uniform(300, 900)
 			await asyncio.sleep(wait_time)
 			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS["Wish on a Star"]["veadotube_name"], 2.0))
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time // 60} minutes ago... and {get_pronouns(payload.user.name, PronounType.THEIR)} wish just came true!") # type: ignore
@@ -551,7 +551,7 @@ class CommandsChat(commands.Component):
 		elif payload.reward.id == REDEEMS["Peer Pressure"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0))
 		elif payload.reward.id == REDEEMS["Pressure Overload"]["id"]:
-			await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 11.0))
+			await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 10.0))
 		elif payload.reward.id == REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			await send_message(user, sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
