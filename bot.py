@@ -644,9 +644,10 @@ class CommandsChat(commands.Component):
 	@commands.command(aliases=["so"])
 	async def shoutout(self, context: commands.Context):
 		if context.author.moderator or context.author.broadcaster:	 # type: ignore
-			whom = context.message.text.split()[1] # type: ignore
+			shouted_name = context.message.text.split()[1] # type: ignore
 			user = self.bot.create_partialuser(user_id=OWNER_ID)
-			await user.send_shoutout(to_broadcaster=whom, moderator=context.author)
+			shouted_user = await self.bot.fetch_user(login=shouted_name)
+			await user.send_shoutout(to_broadcaster=shouted_user.id, moderator=context.author) # type: ignore
 
 	@commands.command(aliases=["highlight", "hl"])
 	@commands.cooldown(rate=1, per=120.0, key=commands.BucketType.default)
