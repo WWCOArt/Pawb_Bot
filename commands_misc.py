@@ -19,7 +19,7 @@ class CommandsMisc(commands.Component):
 
 	@commands.command(aliases=["distraction"])
 	async def distracted(self, context: commands.Context):
-		new_count = self.bot_data.get_variable("distracted_count") + 1
+		new_count = (self.bot_data.get_variable("distracted_count") or 0) + 1
 		await send_message_context(context, f"Sierra has been distracted at least {new_count} time{"s" if new_count != 1 else ""} this stream.")
 		self.bot_data.store_variable("distracted_count", new_count)
 
@@ -48,7 +48,7 @@ class CommandsMisc(commands.Component):
 
 	@commands.command()
 	async def scronch(self, context: commands.Context):
-		current_count = self.bot_data.get_variable("scronch_count")
+		current_count = self.bot_data.get_variable("scronch_count") or 0
 		self.bot_data.increment_variable("scronch_count")
 		await send_message_context(context, f"A foxbird has been observed scronching {current_count + 1} times.")
 

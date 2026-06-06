@@ -162,6 +162,10 @@ class Bot(commands.Bot):
 			await user.update_custom_reward(REDEEMS["Blink"]["id"], enabled=False)
 			await user.update_custom_reward(REDEEMS["What if Big?"]["id"], enabled=False)
 
+			for redeem in REDEEMS.values():
+				if redeem["silly"]:
+					await user.update_custom_reward(redeem["id"], cost=redeem["base_price"])
+
 			self.bot_data.clear_greetings_said()
 
 		self.bot_data.update_last_start_time()
@@ -503,6 +507,12 @@ class CommandsChat(commands.Component):
 				await asyncio.sleep(120)
 				await send_message(user, sender=self.bot.user, message="The skunk has been yeeted out of a portal and lands at runary's feet.") # type: ignore
 
+		# Tangent is a fox
+		if "tangent is a fox" in payload.text.lower():
+			current_form = self.bot_data.get_current_chatter_form("tangent128")
+			message = GREETINGS["tangent128"][current_form]["sound"]
+			await send_message(user, sender=self.bot.user, message=message) # type: ignore
+
 		# User greetings.
 		if payload.chatter.name in GREETINGS and not self.bot_data.has_greeting_been_said(payload.chatter.name): # type: ignore
 			if payload.chatter.name == "flomuffin":
@@ -640,6 +650,14 @@ class CommandsChat(commands.Component):
 ########################################################################################################################
 # Other commands
 ########################################################################################################################
+
+	@commands.command()
+	async def form(self, context: commands.Context):
+		split = context.message.text.split() # type: ignore
+		if len(split) > 1:
+			greetings = GREETINGS.get(context.author.name, "")
+			if isinstance(greetings, dict) and split[1] in greetings:
+				self.bot_data.set_current_chatter_form(context.author.name, split[1]) # type: ignore
 
 	@commands.command(aliases=["so"])
 	async def shoutout(self, context: commands.Context):
