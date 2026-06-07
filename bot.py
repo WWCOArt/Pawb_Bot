@@ -667,6 +667,13 @@ class CommandsChat(commands.Component):
 			shouted_user = await self.bot.fetch_user(login=shouted_name)
 			await user.send_shoutout(to_broadcaster=shouted_user.id, moderator=context.author) # type: ignore
 
+			their_channel = (await self.bot.search_channels(shouted_name, max_results=1))[0]
+			their_username = their_channel.broadcaster.name
+			their_display_name = their_channel.broadcaster.display_name
+			their_game = (await their_channel.fetch_game()).name # type: ignore
+			last_or_current = "Currently" if their_channel.live else "Last seen"
+			await user.send_announcement(moderator=self.bot.user, message=f"Go check out {their_display_name} over at twitch.tv/{their_username}! {last_or_current} playing: {their_game}") # type: ignore
+
 	@commands.command(aliases=["highlight", "hl"])
 	@commands.cooldown(rate=1, per=120.0, key=commands.BucketType.default)
 	async def marker(self, context: commands.Context):

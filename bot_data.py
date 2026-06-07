@@ -65,7 +65,7 @@ class BotData():
 		self.database.commit()
 
 	def get_current_chatter_form(self, username: str) -> str:
-		self.database_cursor.execute("SELECT current_form FROM chatter_forms_current WHERE username = ?", (username,))
+		self.database_cursor.execute("SELECT form FROM chatter_forms_current WHERE username = ?", (username,))
 		return self.database_cursor.fetchone()[0]
 
 	def set_current_chatter_form(self, username: str, form: str):
