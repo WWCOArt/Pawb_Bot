@@ -7,6 +7,7 @@ import keyboard
 import asyncio
 import re
 import requests
+import easygui
 import traceback
 
 VERSION_NUMBER = "0.4"
@@ -470,8 +471,8 @@ class CommandsChat(commands.Component):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 		await send_message(user, sender=self.bot.user, message="PawbOS shutting down.") # type: ignore
 		if len(self.bot_data.stream_markers) > 0:
-			all_markers = ", ".join([f"{marker[1]:02}:{marker[2]:02}:{marker[3]:02}: {marker[0]}" for marker in self.bot_data.stream_markers])
-			print(f"Reminder to add these stream markers: {all_markers}")
+			all_markers = "\n".join([f"{marker[1]:02}:{marker[2]:02}:{marker[3]:02}: {marker[0]}" for marker in self.bot_data.stream_markers])
+			easygui.msgbox(f"Remember to create these stream highlights:\n{all_markers}", title="Hey Sierra!")
 
 ########################################################################################################################
 # Chat message functionality
@@ -543,9 +544,15 @@ class CommandsChat(commands.Component):
 		if payload.reward.id == REDEEMS["Wish on a Star"]["id"]:
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star...") # type: ignore
 			wait_time = random.uniform(300, 900)
-			await asyncio.sleep(wait_time)
+			if wait_time >= 600:
+				await asyncio.sleep(wait_time / 2)
+				await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name}'s wish has been received. It is now on its way.") # type: ignore
+				await asyncio.sleep(wait_time / 2)
+			else:
+				await asyncio.sleep(wait_time)
+
 			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS["Wish on a Star"]["veadotube_name"], 2.0))
-			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time / 60:.5g} minutes ago... and {get_pronouns(payload.user.name, PronounType.THEIR)} wish just came true!") # type: ignore
+			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time / 60:.5g} minutes ago... {string_to_leetspeak(f"and {get_pronouns(payload.user.name, PronounType.THEIR)} wish just came true!")}") # type: ignore
 		elif payload.reward.title in AVATARS:
 			if payload.reward.title == "Peer Pressure":
 				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0))

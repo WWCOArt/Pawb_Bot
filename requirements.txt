@@ -1,6 +1,7 @@
 astral==3.2
 ChineseNewYear-Zodiac==1.0.0
 cryptography==46.0.4
+easygui==0.98.3
 keyboard==0.13.5
 num2words==0.5.14
 prompt_toolkit==3.0.52
