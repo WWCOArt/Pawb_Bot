@@ -479,7 +479,7 @@ class CommandsChat(commands.Component):
 
 	@commands.Component.listener()
 	async def event_message(self, payload: twitchio.ChatMessage):
-		if payload.chatter.user == self.bot.user:
+		if (await payload.chatter.user()).id == self.bot.user.id: # type: ignore
 			return
 		
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
