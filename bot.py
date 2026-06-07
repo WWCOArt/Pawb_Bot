@@ -9,7 +9,7 @@ import re
 import requests
 import traceback
 
-VERSION_NUMBER = "0.3.9"
+VERSION_NUMBER = "0.4"
 
 DIANE_TEST_MODE = False
 
@@ -252,6 +252,8 @@ class Bot(commands.Bot):
 			self.bot_data.planks_disabled = True
 		elif command == "technology_connections":
 			await user.send_announcement(moderator=self.user, message="Technology Connections is a great channel and you should go watch it https://www.youtube.com/@TechnologyConnections", color="purple") # type: ignore
+		elif command == "reset_greetings":
+			self.bot_data.clear_greetings_said()
 		elif command == "help":
 			print("""List of commands:
 	say [message] - Make pawb_bot say something in chat.
@@ -265,6 +267,7 @@ class Bot(commands.Bot):
 	hug - Trigger hug.
 	noplanks - Disable the planks redeem for the rest of this stream.
 	technology_connections - Technology Connections.
+	reset_greetings - Reset greeting tracking for this stream.
 	help - Show this list.
 				""")
 		else:
@@ -662,17 +665,18 @@ class CommandsChat(commands.Component):
 	@commands.command(aliases=["so"])
 	async def shoutout(self, context: commands.Context):
 		if context.author.moderator or context.author.broadcaster:	 # type: ignore
-			shouted_name = context.message.text.split()[1] # type: ignore
 			user = self.bot.create_partialuser(user_id=OWNER_ID)
-			shouted_user = await self.bot.fetch_user(login=shouted_name)
-			await user.send_shoutout(to_broadcaster=shouted_user.id, moderator=context.author) # type: ignore
 
-			their_channel = (await self.bot.search_channels(shouted_name, max_results=1))[0]
-			their_username = their_channel.broadcaster.name
-			their_display_name = their_channel.broadcaster.display_name
-			their_game = (await their_channel.fetch_game()).name # type: ignore
-			last_or_current = "Currently" if their_channel.live else "Last seen"
-			await user.send_announcement(moderator=self.bot.user, message=f"Go check out {their_display_name} over at twitch.tv/{their_username}! {last_or_current} playing: {their_game}") # type: ignore
+			shouted_name = context.message.text.split()[1] # type: ignore
+			shouted_user = await self.bot.fetch_user(login=shouted_name)
+			if shouted_user != None:
+				await user.send_shoutout(to_broadcaster=shouted_user.id, moderator=context.author) # type: ignore
+
+				their_channel = (await self.bot.fetch_channel(shouted_user.id)) # type: ignore
+				their_username = shouted_user.name # type: ignore
+				their_display_name = shouted_user.display_name
+				their_game = their_channel.game_name # type: ignore
+				await user.send_announcement(moderator=self.bot.user, message=f"Go check out {their_display_name} over at twitch.tv/{their_username}! Last seen playing: {their_game}") # type: ignore
 
 	@commands.command(aliases=["highlight", "hl"])
 	@commands.cooldown(rate=1, per=120.0, key=commands.BucketType.default)
