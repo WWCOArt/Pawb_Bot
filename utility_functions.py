@@ -129,7 +129,7 @@ def string_to_leetspeak(string: str) -> str:
 	result = ""
 	for char in string:
 		replacement = table.get(char)
-		if replacement != None:
+		if replacement != None and random.choice([True, False]):
 			result += replacement
 		else:
 			result += char

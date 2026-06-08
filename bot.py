@@ -677,7 +677,7 @@ class CommandsChat(commands.Component):
 			shouted_name = context.message.text.split()[1] # type: ignore
 			shouted_user = await self.bot.fetch_user(login=shouted_name)
 			if shouted_user != None:
-				await user.send_shoutout(to_broadcaster=shouted_user.id, moderator=context.author) # type: ignore
+				await user.send_shoutout(to_broadcaster=shouted_user.id, moderator=self.bot.user) # type: ignore
 
 				their_channel = (await self.bot.fetch_channel(shouted_user.id)) # type: ignore
 				their_username = shouted_user.name # type: ignore
@@ -698,7 +698,7 @@ class CommandsChat(commands.Component):
 		await user.create_stream_marker(token_for=OWNER_ID, description=description)
 
 		start_time = (await user.fetch_stream()).started_at # type: ignore
-		uptime = datetime.datetime.now() - start_time
+		uptime = datetime.datetime.now(tz=start_time.tzinfo) - start_time
 		mm, ss = divmod(uptime.seconds, 60)
 		hh, mm = divmod(mm, 60)
 
