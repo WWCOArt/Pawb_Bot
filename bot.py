@@ -448,7 +448,7 @@ class CommandsChat(commands.Component):
 	async def event_stream_online(self, payload: twitchio.StreamOnline):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
 
-		await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "sphinx", 1.0))
+		await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "skunkLineless", 1.0))
 
 		await send_message(user, sender=self.bot.user, message=f"PawbOS v{VERSION_NUMBER} booting up.") # type: ignore
 		await asyncio.sleep(0.5)
