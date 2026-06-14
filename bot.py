@@ -8,9 +8,9 @@ import asyncio
 import re
 import requests
 import easygui
-import traceback
+import obsws_python
 
-VERSION_NUMBER = "0.4"
+VERSION_NUMBER = "0.4.1"
 
 DIANE_TEST_MODE = False
 
@@ -41,6 +41,7 @@ CLIENT_SECRET = bot_secrets_json["client_secret"]
 BOT_ID = bot_secrets_json["bot_id"]
 OWNER_ID = bot_secrets_json["owner_id"]
 CLOUD_WEBHOOK_URL = bot_secrets_json["cloud_webhook_url"]
+OBS_WEBSOCKET_PASSWORD = bot_secrets_json["obs_websocket_password"]
 bot_secrets.close()
 
 with open("config.json", encoding="utf8") as config_data:
@@ -71,6 +72,11 @@ LOGGER: logging.Logger = logging.getLogger("Bot")
 
 def set_current_avatar(bot_data: BotData, av: str):
 	bot_data.current_avatar = av
+	requests.post("http://localhost:9450/webhook", {
+		"trigger": "avatarWebhook",
+		"avatar": av,
+	})
+
 	if not DIANE_TEST_MODE:
 		subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
 
@@ -176,7 +182,9 @@ class Bot(commands.Bot):
 
 		self.randomize_connection_offline.start()
 		self.poll_trello_queue.start()
-		
+
+		self.obs_websocket = obsws_python.ReqClient(host="localhost", port=4455, password=OBS_WEBSOCKET_PASSWORD, timeout=3)
+
 		LOGGER.info("Finished setup hook!")
 
 		# streamer command input
@@ -187,7 +195,37 @@ class Bot(commands.Bot):
 				await self.process_input(inp)
 
 	async def shut_down(self):
+		self.obs_websocket.disconnect()
 		self.bot_data.database.close()
+
+########################################################################################################################
+# OBS
+########################################################################################################################
+
+	async def go_to_brb(self):
+		if self.obs_websocket.get_current_program_scene().scene_name == "Main": # type: ignore
+			user = self.create_partialuser(user_id=OWNER_ID)
+
+			self.obs_websocket.set_studio_mode_enabled(True)
+			await asyncio.sleep(0.6)
+			self.obs_websocket.set_current_program_scene("BRB")
+			await asyncio.sleep(2.4)
+			self.obs_websocket.set_studio_mode_enabled(False)
+			await asyncio.sleep(3.5)
+			await user.start_commercial(length=180)
+			await user.send_announcement(moderator=self.user, color="orange", message="Sierra's taking a short break. We'll be running a 3-minute ad break to minimize preroll ads.") # type: ignore
+			# TODO: enfield size
+
+	async def return_from_brb(self):
+		if self.obs_websocket.get_current_program_scene().scene_name == "BRB": # type: ignore
+			self.obs_websocket.set_studio_mode_enabled(True)
+			await asyncio.sleep(0.6)
+			self.obs_websocket.set_current_program_scene("Art Streams")
+			await asyncio.sleep(2.4)
+			self.obs_websocket.set_studio_mode_enabled(False)
+			await asyncio.sleep(0.5)
+			brb_id = self.obs_websocket.get_scene_item_id("BRB", "brb temp 2").scene_item_id # type: ignore
+			self.obs_websocket.set_scene_item_enabled("BRB", brb_id, False)
 
 ########################################################################################################################
 # Streamer console commands
@@ -212,6 +250,11 @@ class Bot(commands.Bot):
 			next_person = queue[0]["name"]
 			await user.send_announcement(moderator=self.user, message=f"{next_person} is up!") # type: ignore
 			await user.send_whisper(to_user=next_person.lower(), message=f"Sierra is starting on your dono, {next_person}")
+		elif command == "brb":
+			if self.obs_websocket.get_current_program_scene().scene_name == "BRB": # type: ignore
+				await self.return_from_brb()
+			else:
+				await self.go_to_brb()
 		elif command == "avatar":
 			if len(input_split) > 1:
 				if input_split[1] == "random":
@@ -260,6 +303,7 @@ class Bot(commands.Bot):
 	say [message] - Make pawb_bot say something in chat.
 	best_button - Press the best button.
 	next - Advance the dono queue. (DOES NOT CURRENTLY WORK)
+	brb - Switch between BRB and not BRB.
 	avatar [avatar_name] - Switch to an avatar by its veadotube name. "avatar random" triggers random avatar.
 	veado [node] [request] - Send a request to Veadotube in the format: veadotube -i 0 nodes stateEvents [node] set "[request]"
 	show [variable_name] - Show the current value of a variable. With no argument, it will show all variable names in the BotData class.
