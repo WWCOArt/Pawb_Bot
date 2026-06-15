@@ -72,7 +72,6 @@ LOGGER: logging.Logger = logging.getLogger("Bot")
 
 def set_current_avatar(bot_data: BotData, av: str):
 	bot_data.current_avatar = av
-	print("test")
 	requests.post("http://localhost:9450/webhook", None, {
 		"trigger": "avatarWebhook",
 		"avatar": av,
