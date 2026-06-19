@@ -4,6 +4,7 @@ import logging
 import twitchio
 from twitchio import eventsub
 from twitchio.ext import commands
+import aiohttp.client_exceptions
 
 import bot
 
@@ -20,6 +21,8 @@ def main() -> None:
 	try:
 		asyncio.run(runner())
 	except KeyboardInterrupt:
+		bot.LOGGER.warning("Shutting down due to Keyboard Interrupt...")
+	except aiohttp.client_exceptions.ServerDisconnectedError:
 		bot.LOGGER.warning("Shutting down due to Keyboard Interrupt...")
 
 if __name__ == "__main__":
