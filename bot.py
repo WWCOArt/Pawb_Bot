@@ -20,7 +20,7 @@ from twitchio.ext import commands, routines
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
 
-from utility_functions import send_message, CheckType, send_message_context
+from utility_functions import send_message, CheckType, send_message_context, string_to_leetspeak, get_pronouns, PronounType
 
 import trello
 from bot_data import BotData
