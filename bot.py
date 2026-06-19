@@ -10,7 +10,7 @@ import requests
 import easygui
 import obsws_python
 
-VERSION_NUMBER = "0.4.1"
+VERSION_NUMBER = "0.4.1.1"
 
 DIANE_TEST_MODE = False
 
@@ -203,7 +203,7 @@ class Bot(commands.Bot):
 ########################################################################################################################
 
 	async def go_to_brb(self):
-		if self.obs_websocket.get_current_program_scene().scene_name == "Main": # type: ignore
+		if self.obs_websocket.get_current_program_scene().scene_name == "Art Streams": # type: ignore
 			user = self.create_partialuser(user_id=OWNER_ID)
 
 			self.obs_websocket.set_studio_mode_enabled(True)
