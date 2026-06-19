@@ -20,7 +20,7 @@ from twitchio.ext import commands, routines
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
 
-from utility_functions import send_message, send_message_context, string_to_leetspeak, get_pronouns, PronounType
+from utility_functions import send_message, CheckType, send_message_context
 
 import trello
 from bot_data import BotData
@@ -212,8 +212,8 @@ class Bot(commands.Bot):
 			await asyncio.sleep(2.4)
 			self.obs_websocket.set_studio_mode_enabled(False)
 			await asyncio.sleep(3.5)
-			await user.start_commercial(length=180)
 			await user.send_announcement(moderator=self.user, color="orange", message="Sierra's taking a short break. We'll be running a 3-minute ad break to minimize preroll ads.") # type: ignore
+			await user.start_commercial(length=180)
 			# TODO: enfield size
 
 	async def return_from_brb(self):
@@ -251,10 +251,9 @@ class Bot(commands.Bot):
 			await user.send_announcement(moderator=self.user, message=f"{next_person} is up!") # type: ignore
 			await user.send_whisper(to_user=next_person.lower(), message=f"Sierra is starting on your dono, {next_person}")
 		elif command == "brb":
-			if self.obs_websocket.get_current_program_scene().scene_name == "BRB": # type: ignore
-				await self.return_from_brb()
-			else:
-				await self.go_to_brb()
+			await self.go_to_brb()
+		elif command == "main":
+			await self.return_from_brb()
 		elif command == "avatar":
 			if len(input_split) > 1:
 				if input_split[1] == "random":
@@ -303,7 +302,8 @@ class Bot(commands.Bot):
 	say [message] - Make pawb_bot say something in chat.
 	best_button - Press the best button.
 	next - Advance the dono queue. (DOES NOT CURRENTLY WORK)
-	brb - Switch between BRB and not BRB.
+	brb - Switch to the BRB screen.
+	main - Return from the BRB screen.
 	avatar [avatar_name] - Switch to an avatar by its veadotube name. "avatar random" triggers random avatar.
 	veado [node] [request] - Send a request to Veadotube in the format: veadotube -i 0 nodes stateEvents [node] set "[request]"
 	show [variable_name] - Show the current value of a variable. With no argument, it will show all variable names in the BotData class.
@@ -579,6 +579,36 @@ class CommandsChat(commands.Component):
 # Redeems
 ########################################################################################################################
 
+	def find_check(self) -> tuple[str, CheckType]:
+		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		progression_items = ([
+			"Progressive Draconification Curse",
+		], CheckType.PROGRESSION)
+
+		filler_items = ([
+			"Tissue",
+			"Silly String",
+			"Sour Candy",
+			"Dino Chicken Nuggets",
+			"Art Supplies",
+			"Random Obscure 20th Century Camera",
+			"Sao Lore",
+			"Fox Rule",
+		], CheckType.FILLER)
+
+		trap_items = ([
+			"Invisibility Trap",
+			"Cooldown Trap",
+			"Mirror Trap",
+			"Skew Trap",
+		], CheckType.TRAP)
+		
+		check_array = random.choices([progression_items, filler_items, trap_items], [45, 45, 10])[0]
+		check = random.choice(check_array[0])
+		check_type = check_array[1]
+
+		return check, check_type
+
 	@commands.Component.listener()
 	async def event_custom_redemption_add(self, payload: twitchio.ChannelPointsRedemptionAdd):
 		user = self.bot.create_partialuser(user_id=OWNER_ID)
@@ -586,6 +616,7 @@ class CommandsChat(commands.Component):
 		# When redeem is triggered, first check if the title matches any of the avatar redeems. If so, add the avatar swap to the queue.
 		# ...except first check for wish on a star because it's the one exception to that
 		if payload.reward.id == REDEEMS["Wish on a Star"]["id"]:
+			await user.update_custom_reward(REDEEMS["Wish on a Star"]["id"], enabled=False)
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star...") # type: ignore
 			wait_time = random.uniform(300, 900)
 			if wait_time >= 600:
@@ -597,6 +628,7 @@ class CommandsChat(commands.Component):
 
 			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS["Wish on a Star"]["veadotube_name"], 2.0))
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time / 60:.5g} minutes ago... {string_to_leetspeak(f"and {get_pronouns(payload.user.name, PronounType.THEIR)} wish just came true!")}") # type: ignore
+			await user.update_custom_reward(REDEEMS["Wish on a Star"]["id"], enabled=True)
 		elif payload.reward.title in AVATARS:
 			if payload.reward.title == "Peer Pressure":
 				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0))
@@ -612,10 +644,30 @@ class CommandsChat(commands.Component):
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
 			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.current_avatar, duration))
+		#elif payload.reward.id == REDEEMS["Peer Pressure"]["id"]:
+		#	await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0))
+		#elif payload.reward.id == REDEEMS["Pressure Overload"]["id"]:
+		#	await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 10.0))
 		elif payload.reward.id == REDEEMS["Peer Pressure"]["id"]:
-			await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0))
-		elif payload.reward.id == REDEEMS["Pressure Overload"]["id"]:
-			await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 10.0))
+			check, check_type = self.find_check()
+			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} found Sierra's {check}.") # type: ignore
+			if check_type == CheckType.PROGRESSION:
+				if self.bot_data.peer_pressure_level == 6:
+					await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 10.0))
+				elif self.bot_data.peer_pressure_level < 6:
+					await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0))
+			elif check_type == CheckType.TRAP:
+				trap_type = check.split()[0]
+				if trap_type == "Invisibility":
+					pass
+				elif trap_type == "Cooldown":
+					await user.update_custom_reward(REDEEMS["Peer Pressure"]["id"], enabled=False)
+					await asyncio.sleep(30)
+					await user.update_custom_reward(REDEEMS["Peer Pressure"]["id"], enabled=True)
+				elif trap_type == "Mirror":
+					pass
+				elif trap_type == "Skew":
+					pass
 		elif payload.reward.id == REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			await send_message(user, sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore

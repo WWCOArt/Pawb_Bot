@@ -17,6 +17,11 @@ class PronounType(Enum):
 	THEIR = 2
 	THEIRS = 3
 
+class CheckType(Enum):
+	PROGRESSION = 0
+	FILLER = 1
+	TRAP = 2
+
 PRONOUNS_THEY = {
 	PronounType.THEY: "they",
 	PronounType.THEM: "them",
