@@ -30,59 +30,7 @@ from commands_donos import CommandsDonos
 from commands_misc import CommandsMisc
 from commands_characters import CommandsCharacters
 
-########################################################################################################################
-# Global variable + JSON setup
-########################################################################################################################
-
-bot_secrets = open("secrets.json", encoding="utf8")
-bot_secrets_json = json.load(bot_secrets)
-CLIENT_ID = bot_secrets_json["client_id"]
-CLIENT_SECRET = bot_secrets_json["client_secret"]
-BOT_ID = bot_secrets_json["bot_id"]
-OWNER_ID = bot_secrets_json["owner_id"]
-CLOUD_WEBHOOK_URL = bot_secrets_json["cloud_webhook_url"]
-OBS_WEBSOCKET_PASSWORD = bot_secrets_json["obs_websocket_password"]
-bot_secrets.close()
-
-with open("config.json", encoding="utf8") as config_data:
-	config_data_json = json.load(config_data)
-	VEADOTUBE_PATH = config_data_json["veadotube_path"]
-	CURRENT_SONG_PATH = config_data_json["current_song_path"]
-
-with open("avatars.json", encoding="utf8") as avatars_file:
-	AVATARS = json.load(avatars_file)
-
-	REDEEMS_DEFAULT_ENABLED = set()
-	REDEEMS_DEFAULT_DISABLED = set()
-	for avatar in AVATARS.values():
-		REDEEMS_DEFAULT_DISABLED.update(avatar.get("enable_redeems", []))
-		REDEEMS_DEFAULT_ENABLED.update(avatar.get("disable_redeems", []))
-
-with open("redeems.json", encoding="utf8") as redeem_ids_file:
-	REDEEMS = json.load(redeem_ids_file)
-
-with open("greetings.json", encoding="utf8") as greetings_file:
-	GREETINGS = json.load(greetings_file)
-
 LOGGER: logging.Logger = logging.getLogger("Bot")
-
-########################################################################################################################
-# Utility functions
-########################################################################################################################
-
-def set_current_avatar(bot_data: BotData, av: str):
-	bot_data.current_avatar = av
-	requests.post("http://localhost:9450/webhook", None, {
-		"trigger": "avatarWebhook",
-		"avatar": av,
-	})
-
-	if not DIANE_TEST_MODE:
-		subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
-
-def get_avatar_info_by_veadotube_name(veadotube_name: str) -> dict:
-	matches = [av for av in AVATARS.values() if av["veadotube_name"] == veadotube_name]
-	return matches[0] if len(matches) > 0 else {}
 
 ########################################################################################################################
 # Initial setup + bot start/shutdown
@@ -90,12 +38,14 @@ def get_avatar_info_by_veadotube_name(veadotube_name: str) -> dict:
 
 class Bot(commands.Bot):
 	def __init__(self) -> None:
-		self.bot_data = BotData(AVATARS)
+		self.load_json()
+
+		self.bot_data = BotData(self.AVATARS)
 		super().__init__(
-			client_id=CLIENT_ID,
-			client_secret=CLIENT_SECRET,
-			bot_id=BOT_ID,
-			owner_id=OWNER_ID,
+			client_id=self.CLIENT_ID,
+			client_secret=self.CLIENT_SECRET,
+			bot_id=self.BOT_ID,
+			owner_id=self.OWNER_ID,
 			prefix="!",
 			case_insensitive=True
 		)
@@ -145,7 +95,7 @@ class Bot(commands.Bot):
 		await self.add_component(CommandsMisc(self.bot_data))
 		await self.add_component(CommandsCharacters(self.bot_data))
 
-		user = self.create_partialuser(user_id=OWNER_ID)
+		user = self.create_partialuser(user_id=self.OWNER_ID)
 
 		# if DIANE_TEST_MODE:
 		# 	await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "sphinx", 1.0)) # type: ignore
@@ -160,16 +110,16 @@ class Bot(commands.Bot):
 			self.bot_data.store_variable("current_hype_level", 0)
 			self.bot_data.store_variable("highest_hype_level", 0)
 
-			await user.update_custom_reward(REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
-			await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=False)
-			await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=False)
-			await user.update_custom_reward(REDEEMS["HypeDragon3"]["id"], enabled=False)
-			await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=False)
-			await user.update_custom_reward(REDEEMS["Winter Mode"]["id"], enabled=False)
-			await user.update_custom_reward(REDEEMS["Blink"]["id"], enabled=False)
-			await user.update_custom_reward(REDEEMS["What if Big?"]["id"], enabled=False)
+			await user.update_custom_reward(self.REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
+			await user.update_custom_reward(self.REDEEMS["Planks!"]["id"], enabled=False)
+			await user.update_custom_reward(self.REDEEMS["HypeDragon1"]["id"], enabled=False)
+			await user.update_custom_reward(self.REDEEMS["HypeDragon3"]["id"], enabled=False)
+			await user.update_custom_reward(self.REDEEMS["HypeDragon5"]["id"], enabled=False)
+			await user.update_custom_reward(self.REDEEMS["Winter Mode"]["id"], enabled=False)
+			await user.update_custom_reward(self.REDEEMS["Blink"]["id"], enabled=False)
+			await user.update_custom_reward(self.REDEEMS["What if Big?"]["id"], enabled=False)
 
-			for redeem in REDEEMS.values():
+			for redeem in self.REDEEMS.values():
 				if redeem["silly"]:
 					await user.update_custom_reward(redeem["id"], cost=redeem["base_price"])
 
@@ -183,7 +133,7 @@ class Bot(commands.Bot):
 		self.randomize_connection_offline.start()
 		self.poll_trello_queue.start()
 
-		self.obs_websocket = obsws_python.ReqClient(host="localhost", port=4455, password=OBS_WEBSOCKET_PASSWORD, timeout=3)
+		self.obs_websocket = obsws_python.ReqClient(host="localhost", port=4455, password=self.OBS_WEBSOCKET_PASSWORD, timeout=3)
 
 		LOGGER.info("Finished setup hook!")
 
@@ -198,13 +148,58 @@ class Bot(commands.Bot):
 		self.obs_websocket.disconnect()
 		self.bot_data.database.close()
 
+	def set_current_avatar(self, bot_data: BotData, av: str):
+		bot_data.current_avatar = av
+		requests.post("http://localhost:9450/webhook", None, {
+			"trigger": "avatarWebhook",
+			"avatar": av,
+		})
+
+		if not DIANE_TEST_MODE:
+			subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
+
+	def get_avatar_info_by_veadotube_name(self, veadotube_name: str) -> dict:
+		matches = [av for av in self.AVATARS.values() if av["veadotube_name"] == veadotube_name]
+		return matches[0] if len(matches) > 0 else {}
+	
+	def load_json(self):
+		bot_secrets = open("secrets.json", encoding="utf8")
+		bot_secrets_json = json.load(bot_secrets)
+		self.CLIENT_ID = bot_secrets_json["client_id"]
+		self.CLIENT_SECRET = bot_secrets_json["client_secret"]
+		self.BOT_ID = bot_secrets_json["bot_id"]
+		self.OWNER_ID = bot_secrets_json["owner_id"]
+		self.CLOUD_WEBHOOK_URL = bot_secrets_json["cloud_webhook_url"]
+		self.OBS_WEBSOCKET_PASSWORD = bot_secrets_json["obs_websocket_password"]
+		bot_secrets.close()
+
+		with open("config.json", encoding="utf8") as config_data:
+			config_data_json = json.load(config_data)
+			self.VEADOTUBE_PATH = config_data_json["veadotube_path"]
+			self.CURRENT_SONG_PATH = config_data_json["current_song_path"]
+
+		with open("avatars.json", encoding="utf8") as avatars_file:
+			self.AVATARS = json.load(avatars_file)
+
+			self.REDEEMS_DEFAULT_ENABLED = set()
+			self.REDEEMS_DEFAULT_DISABLED = set()
+			for avatar in self.AVATARS.values():
+				self.REDEEMS_DEFAULT_DISABLED.update(avatar.get("enable_redeems", []))
+				self.REDEEMS_DEFAULT_ENABLED.update(avatar.get("disable_redeems", []))
+
+		with open("redeems.json", encoding="utf8") as redeem_ids_file:
+			self.REDEEMS = json.load(redeem_ids_file)
+
+		with open("greetings.json", encoding="utf8") as greetings_file:
+			self.GREETINGS = json.load(greetings_file)
+
 ########################################################################################################################
 # OBS
 ########################################################################################################################
 
 	async def go_to_brb(self):
 		if self.obs_websocket.get_current_program_scene().scene_name == "Art Streams": # type: ignore
-			user = self.create_partialuser(user_id=OWNER_ID)
+			user = self.create_partialuser(user_id=self.OWNER_ID)
 
 			self.obs_websocket.set_studio_mode_enabled(True)
 			await asyncio.sleep(0.6)
@@ -232,7 +227,7 @@ class Bot(commands.Bot):
 ########################################################################################################################
 
 	async def process_input(self, inp: str):
-		user = self.create_partialuser(user_id=OWNER_ID)
+		user = self.create_partialuser(user_id=self.OWNER_ID)
 
 		input_split = inp.split()
 		if len(input_split) == 0:
@@ -245,7 +240,7 @@ class Bot(commands.Bot):
 			if not self.bot_data.best_button_broken:
 				await user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary", color="purple") # type: ignore
 		elif command == "next":
-			requests.post(f"{CLOUD_WEBHOOK_URL}?advance_queue")
+			requests.post(f"{self.CLOUD_WEBHOOK_URL}?advance_queue")
 			queue = trello.get_trello_queue()
 			next_person = queue[0]["name"]
 			await user.send_announcement(moderator=self.user, message=f"{next_person} is up!") # type: ignore
@@ -264,7 +259,7 @@ class Bot(commands.Bot):
 				print(f"Current avatar: {self.bot_data.current_avatar}")
 		elif command == "veado" or command == "veadotube":
 			if len(input_split) == 2:
-				subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents {input_split[1]} set "{input_split[2]}"')
+				subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents {input_split[1]} set "{input_split[2]}"')
 			else:
 				print('Missing parameters for command "veado"')
 		elif command == "show" or command == "variable":
@@ -280,23 +275,25 @@ class Bot(commands.Bot):
 				print(" ".join([var for var in dir(self.bot_data) if not var.startswith("__")]))
 		elif command == "queue_random":
 			if len(input_split) > 1:
-				avatar = get_avatar_info_by_veadotube_name(input_split[1])
+				avatar = self.get_avatar_info_by_veadotube_name(input_split[1])
 				self.bot_data.random_avatars.append(avatar)
 			else:
 				print('Missing parameters for command "queue_random"')
 		elif command == "headpats" or command == "hug":
 			is_hug = command == "hug"
-			all_interact_timings = get_avatar_info_by_veadotube_name(self.bot_data.current_avatar).get("interact_timings", 2.5)
+			all_interact_timings = self.get_avatar_info_by_veadotube_name(self.bot_data.current_avatar).get("interact_timings", 2.5)
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get(command, 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(("default", 2.5))
 			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration)) # type: ignore
 		elif command == "noplanks":
-			await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=False)
+			await user.update_custom_reward(self.REDEEMS["Planks!"]["id"], enabled=False)
 			self.bot_data.planks_disabled = True
 		elif command == "technology_connections":
 			await user.send_announcement(moderator=self.user, message="Technology Connections is a great channel and you should go watch it https://www.youtube.com/@TechnologyConnections", color="purple") # type: ignore
 		elif command == "reset_greetings":
 			self.bot_data.clear_greetings_said()
+		elif command == "reload":
+			self.load_json()
 		elif command == "help":
 			print("""List of commands:
 	say [message] - Make pawb_bot say something in chat.
@@ -313,6 +310,7 @@ class Bot(commands.Bot):
 	noplanks - Disable the planks redeem for the rest of this stream.
 	technology_connections - Technology Connections.
 	reset_greetings - Reset greeting tracking for this stream.
+	reload - Reload all JSON and other data files used by the bot.
 	help - Show this list.
 				""")
 		else:
@@ -324,12 +322,12 @@ class Bot(commands.Bot):
 
 	@routines.routine(delta=datetime.timedelta(seconds=2))
 	async def randomize_connection_offline(self):
-		user = self.create_partialuser(user_id=OWNER_ID)
-		await user.update_custom_reward(REDEEMS["Connection Offline. . ."]["id"], cost=random.randint(100000000, 999999999))
+		user = self.create_partialuser(user_id=self.OWNER_ID)
+		await user.update_custom_reward(self.REDEEMS["Connection Offline. . ."]["id"], cost=random.randint(100000000, 999999999))
 
 	@routines.routine(delta=datetime.timedelta(seconds=2), wait_first=True)
 	async def poll_trello_queue(self):
-		user = self.create_partialuser(user_id=OWNER_ID)
+		user = self.create_partialuser(user_id=self.OWNER_ID)
 		new_queue = trello.get_trello_queue()
 		if len(new_queue) != self.bot_data.current_queue_size:
 			if len(new_queue) > self.bot_data.current_queue_size:
@@ -350,8 +348,8 @@ class Bot(commands.Bot):
 	@routines.routine(delta=datetime.timedelta(hours=1), iterations=1)
 	async def enable_planks(self):
 		if not self.bot_data.planks_disabled:
-			user = self.create_partialuser(user_id=OWNER_ID)
-			await user.update_custom_reward(REDEEMS["Planks!"]["id"], enabled=True)
+			user = self.create_partialuser(user_id=self.OWNER_ID)
+			await user.update_custom_reward(self.REDEEMS["Planks!"]["id"], enabled=True)
 
 ########################################################################################################################
 
@@ -365,22 +363,22 @@ class CommandsChat(commands.Component):
 ########################################################################################################################
 
 	async def avatar_transition(self, avatar: str):
-		avatar_info = get_avatar_info_by_veadotube_name(avatar)
+		avatar_info = self.bot.get_avatar_info_by_veadotube_name(avatar)
 		redeems_disabled = avatar_info.get("disable_redeems", [])
 		redeems_enabled = avatar_info.get("enable_redeems", [])
 
-		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 
-		for redeem in REDEEMS_DEFAULT_DISABLED:
-			redeem_id = REDEEMS[redeem]["id"]
+		for redeem in self.bot.REDEEMS_DEFAULT_DISABLED:
+			redeem_id = self.bot.REDEEMS[redeem]["id"]
 			already_enabled = (await user.fetch_custom_rewards(ids=[redeem_id]))[0].enabled
 			if not already_enabled and redeem in redeems_enabled:
 				await user.update_custom_reward(redeem_id, enabled=True)
 			elif not redeem in redeems_enabled:
 				await user.update_custom_reward(redeem_id, enabled=False)
 
-		for redeem in REDEEMS_DEFAULT_ENABLED:
-			redeem_id = REDEEMS[redeem]["id"]
+		for redeem in self.bot.REDEEMS_DEFAULT_ENABLED:
+			redeem_id = self.bot.REDEEMS[redeem]["id"]
 			already_enabled = (await user.fetch_custom_rewards(ids=[redeem_id]))[0].enabled
 			if not already_enabled and not redeem in redeems_disabled:
 				await user.update_custom_reward(redeem_id, enabled=True)
@@ -391,14 +389,14 @@ class CommandsChat(commands.Component):
 		await self.avatar_transition(new_avatar)
 
 	async def advance_action_queue(self):
-		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 		
 		#print(f"Advancing queue ({self.bot_data.get_action_queue_string()})")
 		#print(traceback.print_stack())
 		action = self.bot_data.action_queue[0]
 		if action.type == ActionType.AVATAR_CHANGE:
 			previous_avatar = self.bot_data.current_avatar
-			avatar_info = get_avatar_info_by_veadotube_name(action.avatar)
+			avatar_info = self.bot.get_avatar_info_by_veadotube_name(action.avatar)
 			avatar_name = action.avatar
 			new_avatar = str()
 			if len(avatar_info) > 0:
@@ -412,16 +410,16 @@ class CommandsChat(commands.Component):
 				else:
 					new_avatar = avatar_info["veadotube_name"]
 
-				set_current_avatar(self.bot_data, new_avatar)
+				self.bot.set_current_avatar(self.bot_data, new_avatar)
 				await self.update_redeem_availability(previous_avatar, new_avatar)
 		elif action.type == ActionType.RANDOM_AVATAR:
-			with open(CURRENT_SONG_PATH) as song_file:
+			with open(self.bot.CURRENT_SONG_PATH) as song_file:
 				current_song = song_file.read().strip()
 			
 			previous_avatar = self.bot_data.current_avatar
 			new_avatar = {}
 			song_override = False
-			for avatar in AVATARS.values():
+			for avatar in self.bot.AVATARS.values():
 				this_song = avatar.get("song")
 				if this_song != None and this_song in current_song:
 					new_avatar = avatar
@@ -431,9 +429,9 @@ class CommandsChat(commands.Component):
 			if not song_override:
 				new_avatar = self.bot_data.random_avatars.pop()
 				if len(self.bot_data.random_avatars) == 0:
-					self.bot_data.queue_random_avatars(AVATARS)
+					self.bot_data.queue_random_avatars(self.bot.AVATARS)
 
-			set_current_avatar(self.bot_data, new_avatar["veadotube_name"])
+			self.bot.set_current_avatar(self.bot_data, new_avatar["veadotube_name"])
 			await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(new_avatar["description"])) # type: ignore
 			await self.update_redeem_availability(previous_avatar, new_avatar["veadotube_name"])
 		# elif action.type == ActionType.HEADPATS:
@@ -443,31 +441,31 @@ class CommandsChat(commands.Component):
 		elif action.type == ActionType.PEER_PRESSURE:
 			if self.bot_data.current_avatar == "peerPressure":
 				if not DIANE_TEST_MODE:
-					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level) + 0.5}')
+					subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level) + 0.5}')
 				await asyncio.sleep(1.05)
 				self.bot_data.peer_pressure_level += 1
 				if not DIANE_TEST_MODE:
-					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
+					subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 				if self.bot_data.peer_pressure_level == 6:
-					set_current_avatar(self.bot_data, "dragonSmall")
+					self.bot.set_current_avatar(self.bot_data, "dragonSmall")
 					await self.update_redeem_availability(self.bot_data.current_avatar, "dragonSmall")
 			elif self.bot_data.current_avatar == "dragonSmall":
 				self.bot_data.peer_pressure_level += 1
 				if not DIANE_TEST_MODE:
-					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
+					subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 				await asyncio.sleep(0.5)
 				if not DIANE_TEST_MODE:
-					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level + 0.5)}')
-				set_current_avatar(self.bot_data, "peerPressure")
+					subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {float(self.bot_data.peer_pressure_level + 0.5)}')
+				self.bot.set_current_avatar(self.bot_data, "peerPressure")
 				await asyncio.sleep(10)
-				set_current_avatar(self.bot_data, "dragonOverload")
+				self.bot.set_current_avatar(self.bot_data, "dragonOverload")
 				await self.update_redeem_availability(self.bot_data.current_avatar, "dragonOverload")
 			else:
-				set_current_avatar(self.bot_data, "peerPressure")
+				self.bot.set_current_avatar(self.bot_data, "peerPressure")
 				await self.update_redeem_availability(self.bot_data.current_avatar, "peerPressure")
 				self.bot_data.peer_pressure_level = 1
 				if not DIANE_TEST_MODE:
-					subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
+					subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 
 		await asyncio.sleep(action.duration)
 
@@ -490,7 +488,7 @@ class CommandsChat(commands.Component):
 
 	@commands.Component.listener()
 	async def event_stream_online(self, payload: twitchio.StreamOnline):
-		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 
 		await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "skunkLineless", 1.0))
 
@@ -512,7 +510,7 @@ class CommandsChat(commands.Component):
 
 	@commands.Component.listener()
 	async def event_stream_offline(self, payload: twitchio.StreamOffline):
-		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 		await send_message(user, sender=self.bot.user, message="PawbOS shutting down.") # type: ignore
 		if len(self.bot_data.stream_markers) > 0:
 			all_markers = "\n".join([f"{marker[1]:02}:{marker[2]:02}:{marker[3]:02}: {marker[0]}" for marker in self.bot_data.stream_markers])
@@ -527,7 +525,7 @@ class CommandsChat(commands.Component):
 		if (await payload.chatter.user()).id == self.bot.user.id: # type: ignore
 			return
 		
-		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 
 		# Zaffre Bless
 		if payload.chatter.name == "thezaffrehammer" and "bless" in payload.text.lower():
@@ -555,23 +553,41 @@ class CommandsChat(commands.Component):
 				await asyncio.sleep(120)
 				await send_message(user, sender=self.bot.user, message="The skunk has been yeeted out of a portal and lands at runary's feet.") # type: ignore
 
-		# Tangent is a fox
-		if "tangent is a fox" in payload.text.lower():
-			current_form = self.bot_data.get_current_chatter_form("tangent128")
-			message = GREETINGS["tangent128"][current_form]["sound"]
-			await send_message(user, sender=self.bot.user, message=message) # type: ignore
+		# Tangent is a [insert critter(s) here]
+		form_nouns = [
+			"fox",
+			"displacer beast",
+			"catgirl",
+			"foxes",
+			"gooderg",
+			"squirrel",
+			"scene squirrel",
+			"naga",
+			"snake",
+			"snek",
+			"foxtrot",
+			"fops",
+			"goddess",
+		]
+
+		for noun in form_nouns:
+			if f"tangent is a {noun}" in payload.text.lower() or f"tango is a {noun}" in payload.text.lower():
+				current_form = self.bot_data.get_current_chatter_form("tangent128")
+				message = self.bot.GREETINGS["tangent128"][current_form]["sound"]
+				await send_message(user, sender=self.bot.user, message=message) # type: ignore
+				break
 
 		# User greetings.
-		if payload.chatter.name in GREETINGS and not self.bot_data.has_greeting_been_said(payload.chatter.name): # type: ignore
+		if payload.chatter.name in self.bot.GREETINGS and not self.bot_data.has_greeting_been_said(payload.chatter.name): # type: ignore
 			if payload.chatter.name == "flomuffin":
 				self.bot_data.increment_variable("door_count")
 
-			if isinstance(GREETINGS[payload.chatter.name], str): # string = single greeting
-				await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(GREETINGS[payload.chatter.name])) # type: ignore
-			elif isinstance(GREETINGS[payload.chatter.name], list): # list = randomly pick from multiple greetings
-				await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(random.choice(GREETINGS[payload.chatter.name]))) # type: ignore
+			if isinstance(self.bot.GREETINGS[payload.chatter.name], str): # string = single greeting
+				await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(self.bot.GREETINGS[payload.chatter.name])) # type: ignore
+			elif isinstance(self.bot.GREETINGS[payload.chatter.name], list): # list = randomly pick from multiple greetings
+				await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(random.choice(self.bot.GREETINGS[payload.chatter.name]))) # type: ignore
 			else: # dictionary = pick greeting based on form
-				await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(GREETINGS[payload.chatter.name][self.bot_data.get_current_chatter_form(payload.chatter.name)]["greeting"])) # type: ignore
+				await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(self.bot.GREETINGS[payload.chatter.name][self.bot_data.get_current_chatter_form(payload.chatter.name)]["greeting"])) # type: ignore
 
 			self.bot_data.add_greeting_said(payload.chatter.name) # type: ignore
 
@@ -580,7 +596,7 @@ class CommandsChat(commands.Component):
 ########################################################################################################################
 
 	def find_check(self) -> tuple[str, CheckType]:
-		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 		progression_items = ([
 			"Progressive Draconification Curse",
 		], CheckType.PROGRESSION)
@@ -611,12 +627,12 @@ class CommandsChat(commands.Component):
 
 	@commands.Component.listener()
 	async def event_custom_redemption_add(self, payload: twitchio.ChannelPointsRedemptionAdd):
-		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 
 		# When redeem is triggered, first check if the title matches any of the avatar redeems. If so, add the avatar swap to the queue.
 		# ...except first check for wish on a star because it's the one exception to that
-		if payload.reward.id == REDEEMS["Wish on a Star"]["id"]:
-			await user.update_custom_reward(REDEEMS["Wish on a Star"]["id"], enabled=False)
+		if payload.reward.id == self.bot.REDEEMS["Wish on a Star"]["id"]:
+			await user.update_custom_reward(self.bot.REDEEMS["Wish on a Star"]["id"], enabled=False)
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star...") # type: ignore
 			wait_time = random.uniform(300, 900)
 			if wait_time >= 600:
@@ -626,29 +642,25 @@ class CommandsChat(commands.Component):
 			else:
 				await asyncio.sleep(wait_time)
 
-			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS["Wish on a Star"]["veadotube_name"], 2.0))
+			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS["Wish on a Star"]["veadotube_name"], 2.0))
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time / 60:.5g} minutes ago... {string_to_leetspeak(f"and {get_pronouns(payload.user.name, PronounType.THEIR)} wish just came true!")}") # type: ignore
-			await user.update_custom_reward(REDEEMS["Wish on a Star"]["id"], enabled=True)
-		elif payload.reward.title in AVATARS:
+			await user.update_custom_reward(self.bot.REDEEMS["Wish on a Star"]["id"], enabled=True)
+		elif payload.reward.title in self.bot.AVATARS:
 			if payload.reward.title == "Peer Pressure":
 				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0))
 			else:
-				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, AVATARS[payload.reward.title]["veadotube_name"], 2.0))
+				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title]["veadotube_name"], 2.0))
 		#if it's not in the avatar list, compare to other redeems
-		elif payload.reward.id == REDEEMS["Random Avatar"]["id"]:
+		elif payload.reward.id == self.bot.REDEEMS["Random Avatar"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0))
 		# headpats and hugs.
-		elif payload.reward.id == REDEEMS["HeadPats"]["id"] or payload.reward.id == REDEEMS["Hug!"]["id"]:
-			is_hug = payload.reward.id == REDEEMS["Hug!"]["id"]
-			all_interact_timings = get_avatar_info_by_veadotube_name(self.bot_data.current_avatar).get("interact_timings", 2.5)
+		elif payload.reward.id == self.bot.REDEEMS["HeadPats"]["id"] or payload.reward.id == self.bot.REDEEMS["Hug!"]["id"]:
+			is_hug = payload.reward.id == self.bot.REDEEMS["Hug!"]["id"]
+			all_interact_timings = self.bot.get_avatar_info_by_veadotube_name(self.bot_data.current_avatar).get("interact_timings", 2.5)
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
 			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.current_avatar, duration))
-		#elif payload.reward.id == REDEEMS["Peer Pressure"]["id"]:
-		#	await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0))
-		#elif payload.reward.id == REDEEMS["Pressure Overload"]["id"]:
-		#	await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 10.0))
-		elif payload.reward.id == REDEEMS["Peer Pressure"]["id"]:
+		elif payload.reward.id == self.bot.REDEEMS["Peer Pressure"]["id"]:
 			check, check_type = self.find_check()
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} found Sierra's {check}.") # type: ignore
 			if check_type == CheckType.PROGRESSION:
@@ -661,34 +673,34 @@ class CommandsChat(commands.Component):
 				if trap_type == "Invisibility":
 					pass
 				elif trap_type == "Cooldown":
-					await user.update_custom_reward(REDEEMS["Peer Pressure"]["id"], enabled=False)
+					await user.update_custom_reward(self.bot.REDEEMS["Peer Pressure"]["id"], enabled=False)
 					await asyncio.sleep(30)
-					await user.update_custom_reward(REDEEMS["Peer Pressure"]["id"], enabled=True)
+					await user.update_custom_reward(self.bot.REDEEMS["Peer Pressure"]["id"], enabled=True)
 				elif trap_type == "Mirror":
 					pass
 				elif trap_type == "Skew":
 					pass
-		elif payload.reward.id == REDEEMS["Memory Leak"]["id"]:
+		elif payload.reward.id == self.bot.REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			await send_message(user, sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
-			for redeem in REDEEMS.values():
+			for redeem in self.bot.REDEEMS.values():
 				if redeem["silly"]:
 					await user.update_custom_reward(redeem["id"], cost=random.randrange(2, 999) if self.bot_data.silly_mode else redeem["base_price"])
-		elif payload.reward.id == REDEEMS["This Redeem does nothing"]["id"]:
+		elif payload.reward.id == self.bot.REDEEMS["This Redeem does nothing"]["id"]:
 			nothing_cost = self.bot_data.get_variable("nothing_cost")
 			if nothing_cost != None:
 				self.bot_data.store_variable("nothing_cost", nothing_cost + 1)
-				await user.update_custom_reward(REDEEMS["This Redeem does nothing"]["id"], cost=nothing_cost, prompt=f"But each time it's redeemed, the cost becomes one higher. How high will it go? Last redeemed by {payload.user.display_name}.")
-		elif payload.reward.id == REDEEMS["Create a Fox Rule!"]["id"]:
+				await user.update_custom_reward(self.bot.REDEEMS["This Redeem does nothing"]["id"], cost=nothing_cost, prompt=f"But each time it's redeemed, the cost becomes one higher. How high will it go? Last redeemed by {payload.user.display_name}.")
+		elif payload.reward.id == self.bot.REDEEMS["Create a Fox Rule!"]["id"]:
 			self.bot_data.add_foxrule(payload.user.display_name, payload.user_input) # type: ignore
 			await send_message(user, sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
-		elif payload.reward.id == REDEEMS["First!"]["id"]:
+		elif payload.reward.id == self.bot.REDEEMS["First!"]["id"]:
 			self.bot_data.increment_first_count(payload.user.name) # type: ignore
 			await user.update_custom_reward(REDEEMS["First!"]["id"], title=f"{payload.user.display_name} was first this stream!", prompt=f"They've been first {self.bot_data.get_first_count(payload.user.name)} times!") # type: ignore
 
 		# silly mode
 		if self.bot_data.silly_mode:
-			for redeem in REDEEMS.values():
+			for redeem in self.bot.REDEEMS.values():
 				if redeem["silly"]:
 					new_cost = random.randrange(2, 999)
 					await user.update_custom_reward(redeem["id"], cost=new_cost)
@@ -699,22 +711,22 @@ class CommandsChat(commands.Component):
 
 	@commands.Component.listener()
 	async def event_hype_train_progress(self, payload: twitchio.HypeTrainProgress):
-		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 
 		current_hype_level = self.bot_data.get_variable("current_hype_level")
 		if current_hype_level != None and payload.level > current_hype_level:
 			if payload.level == 1:
-				await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=True)
+				await user.update_custom_reward(self.bot.REDEEMS["HypeDragon1"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
 			elif payload.level == 2:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked for rest of stream.") # type: ignore
 			elif payload.level == 3:
-				await user.update_custom_reward(REDEEMS["HypeDragon3"]["id"], enabled=True)
+				await user.update_custom_reward(self.bot.REDEEMS["HypeDragon3"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 unlocked.") # type: ignore
 			elif payload.level == 4:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 unlocked for rest of stream.") # type: ignore
 			elif payload.level == 5:
-				await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=True)
+				await user.update_custom_reward(self.bot.REDEEMS["HypeDragon5"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 unlocked.") # type: ignore
 			elif payload.level >= 6:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 unlocked for rest of stream.") # type: ignore
@@ -724,23 +736,23 @@ class CommandsChat(commands.Component):
 
 	@commands.Component.listener()
 	async def event_hype_train_end(self, payload: twitchio.HypeTrainEnd):
-		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 		current_level = self.bot_data.get_variable("current_hype_level")
 		highest_level = self.bot_data.get_variable("highest_hype_level")
 
 		if highest_level != None and current_level != None:
 			if highest_level < 6:
-				await user.update_custom_reward(REDEEMS["HypeDragon5"]["id"], enabled=False)
+				await user.update_custom_reward(self.bot.REDEEMS["HypeDragon5"]["id"], enabled=False)
 				if current_level > 4:
 					await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 disabled.") # type: ignore
 
 			if highest_level < 4:
-				await user.update_custom_reward(REDEEMS["HypeDragon3"]["id"], enabled=False)
+				await user.update_custom_reward(self.bot.REDEEMS["HypeDragon3"]["id"], enabled=False)
 				if current_level > 2:
 					await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 disabled.") # type: ignore
 
 			if highest_level < 2:
-				await user.update_custom_reward(REDEEMS["HypeDragon1"]["id"], enabled=False)
+				await user.update_custom_reward(self.bot.REDEEMS["HypeDragon1"]["id"], enabled=False)
 				if current_level > 0:
 					await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 disabled.") # type: ignore
 
@@ -761,14 +773,14 @@ class CommandsChat(commands.Component):
 	async def form(self, context: commands.Context):
 		split = context.message.text.split() # type: ignore
 		if len(split) > 1:
-			greetings = GREETINGS.get(context.author.name, "")
+			greetings = self.bot.GREETINGS.get(context.author.name, "")
 			if isinstance(greetings, dict) and split[1] in greetings:
 				self.bot_data.set_current_chatter_form(context.author.name, split[1]) # type: ignore
 
 	@commands.command(aliases=["so"])
 	async def shoutout(self, context: commands.Context):
 		if context.author.moderator or context.author.broadcaster:	 # type: ignore
-			user = self.bot.create_partialuser(user_id=OWNER_ID)
+			user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 
 			shouted_name = context.message.text.split()[1] # type: ignore
 			shouted_user = await self.bot.fetch_user(login=shouted_name)
@@ -784,14 +796,14 @@ class CommandsChat(commands.Component):
 	@commands.command(aliases=["highlight", "hl"])
 	@commands.cooldown(rate=1, per=120.0, key=commands.BucketType.default)
 	async def marker(self, context: commands.Context):
-		user = self.bot.create_partialuser(user_id=OWNER_ID)
+		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 
 		# the stream marker description will be everything the user typed after the !marker command
 		# " ".join() means combine everything in the array you pass to it into one string, separated by a space
 		# context.message.text.split() splits context.message.text into an array of words, and [1:] returns all its elements starting with the second one (this gets rid of the !marker)
 		description = " ".join(context.message.text.split()[1:]) # type: ignore
 
-		await user.create_stream_marker(token_for=OWNER_ID, description=description)
+		await user.create_stream_marker(token_for=self.bot.OWNER_ID, description=description)
 
 		start_time = (await user.fetch_stream()).started_at # type: ignore
 		uptime = datetime.datetime.now(tz=start_time.tzinfo) - start_time

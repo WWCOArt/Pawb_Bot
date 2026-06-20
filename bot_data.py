@@ -61,7 +61,13 @@ class BotData():
 		return self.database_cursor.fetchone()[0]
 
 	def increment_first_count(self, username: str):
-		self.database_cursor.execute("UPDATE first_counts SET count = count + 1 WHERE username = ?", (username,))
+		self.database_cursor.execute("SELECT COUNT(*) FROM first_counts WHERE username = ?", (username,))
+		count = self.database_cursor.fetchone()[0]
+		if count > 0:
+			self.database_cursor.execute("UPDATE first_counts SET count = count + 1 WHERE username = ?", (username,))
+		else:
+			self.database_cursor.execute("INSERT INTO first_counts VALUES (?, 1)", (username,))
+
 		self.database.commit()
 
 	def get_current_chatter_form(self, username: str) -> str:
@@ -79,6 +85,9 @@ class BotData():
 	def queue_random_avatars(self, avatars: dict):
 		self.random_avatars = [av for av in avatars.values() if av["allow_random"]]
 		random.shuffle(self.random_avatars)
+
+	def setup_avatar_pool(self, avatars: dict):
+		pass
 
 	def has_greeting_been_said(self, username: str) -> bool:
 		self.database_cursor.execute("SELECT COUNT(*) FROM greetings_said WHERE name = ?", (username,))
