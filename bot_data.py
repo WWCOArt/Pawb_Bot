@@ -22,6 +22,15 @@ class BotData():
 		self.database = sqlite3.connect("bot_data.db")
 		self.database_cursor = self.database.cursor()
 
+		self.current_avatar_rotation = []
+		self.avatar_rotation_ids = [
+			"fdbfd353-7828-4220-8351-53c9b61572a8",
+			"97df88a8-4d76-4f82-b4ba-d221ae1457a2",
+			"24a3f4af-1318-4da1-b728-5d57f01a81f5",
+			"4f410a06-a112-47a7-a83a-fdfc434a2e0c",
+			"171fc124-04dd-40d8-816a-4db8130ea25c",
+		]
+
 		self.queue_random_avatars(avatars)
 
 		self.vars_regex = re.compile(r"\$\{(.+?)\}")
@@ -85,9 +94,6 @@ class BotData():
 	def queue_random_avatars(self, avatars: dict):
 		self.random_avatars = [av for av in avatars.values() if av["allow_random"]]
 		random.shuffle(self.random_avatars)
-
-	def setup_avatar_pool(self, avatars: dict):
-		pass
 
 	def has_greeting_been_said(self, username: str) -> bool:
 		self.database_cursor.execute("SELECT COUNT(*) FROM greetings_said WHERE name = ?", (username,))

@@ -15,8 +15,14 @@ bot_secrets.close()
 
 LOGGER: logging.Logger = logging.getLogger("Bot")
 
+# AVATAR REDEEM 1: fdbfd353-7828-4220-8351-53c9b61572a8
+# AVATAR REDEEM 2: 97df88a8-4d76-4f82-b4ba-d221ae1457a2
+# AVATAR REDEEM 3: 24a3f4af-1318-4da1-b728-5d57f01a81f5
+# AVATAR REDEEM 4: 4f410a06-a112-47a7-a83a-fdfc434a2e0c
+# AVATAR REDEEM 5: 171fc124-04dd-40d8-816a-4db8130ea25c
+
 ####### EDIT THESE
-redeem_name = "HeadPats"
+redeem_name = "AVATAR REDEEM 5"
 redeem_color = "#bda8ff"
 redeem_description = None
 redeem_cost = 100
@@ -36,9 +42,10 @@ class Bot(commands.Bot):
 	async def setup_hook(self) -> None:
 		user = self.create_partialuser(user_id=OWNER_ID)
 
-		await user.create_custom_reward(title=redeem_name, cost=redeem_cost, background_color=redeem_color, prompt=redeem_description)
+		reward = await user.create_custom_reward(title=redeem_name, cost=redeem_cost, background_color=redeem_color)
 		
-		LOGGER.info("Redeem created!")
+		print("Redeem created!")
+		print(reward.id)
 
 b = Bot()
 # Setup logging, this is optional, however a nice to have...

@@ -9,8 +9,10 @@ import re
 import requests
 import easygui
 import obsws_python
+import http.server
+import aiohttp.client_exceptions
 
-VERSION_NUMBER = "0.4.1.1"
+VERSION_NUMBER = "0.4.3"
 
 DIANE_TEST_MODE = False
 
@@ -97,8 +99,7 @@ class Bot(commands.Bot):
 
 		user = self.create_partialuser(user_id=self.OWNER_ID)
 
-		# if DIANE_TEST_MODE:
-		# 	await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "sphinx", 1.0)) # type: ignore
+		await user.update_custom_reward(self.REDEEMS["Wish on a Star"]["id"], enabled=True)
 
 		# reset everything if this is a new stream day
 		last_start_time = self.bot_data.get_last_start_time()
@@ -123,7 +124,16 @@ class Bot(commands.Bot):
 				if redeem["silly"]:
 					await user.update_custom_reward(redeem["id"], cost=redeem["base_price"])
 
+			await self.setup_avatar_rotation()
+
 			self.bot_data.clear_greetings_said()
+		else:
+			self.bot_data.current_avatar_rotation = ["", "", "", "", ""]
+			redeems = await user.fetch_custom_rewards()
+			for redeem in redeems:
+				if "Avatar:" in redeem.title:
+					id_index = self.bot_data.avatar_rotation_ids.index(redeem.id)
+					self.bot_data.current_avatar_rotation[id_index] = redeem.title
 
 		self.bot_data.update_last_start_time()
 
@@ -133,7 +143,8 @@ class Bot(commands.Bot):
 		self.randomize_connection_offline.start()
 		self.poll_trello_queue.start()
 
-		self.obs_websocket = obsws_python.ReqClient(host="localhost", port=4455, password=self.OBS_WEBSOCKET_PASSWORD, timeout=3)
+		if not DIANE_TEST_MODE:
+			self.obs_websocket = obsws_python.ReqClient(host="localhost", port=4455, password=self.OBS_WEBSOCKET_PASSWORD, timeout=3)
 
 		LOGGER.info("Finished setup hook!")
 
@@ -144,19 +155,55 @@ class Bot(commands.Bot):
 				inp = await session.prompt_async("> ")
 				await self.process_input(inp)
 
+	#async def run_http_server(self):
+	#	class Server(http.server.BaseHTTPRequestHandler):
+	#		def do_GET(self):
+	#			pass
+	#
+	#	server = http.server.HTTPServer(("", 9002), Server)
+	#	server.serve_forever()
+
 	async def shut_down(self):
 		self.obs_websocket.disconnect()
 		self.bot_data.database.close()
 
 	def set_current_avatar(self, bot_data: BotData, av: str):
 		bot_data.current_avatar = av
-		requests.post("http://localhost:9450/webhook", None, {
-			"trigger": "avatarWebhook",
-			"avatar": av,
-		})
+		if not DIANE_TEST_MODE:
+			requests.post("http://localhost:9450/webhook", None, {
+				"trigger": "avatarWebhook",
+				"avatar": av,
+			})
 
 		if not DIANE_TEST_MODE:
 			subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
+
+	async def setup_avatar_rotation(self, name_to_replace: str = ""):
+		user = self.create_partialuser(user_id=self.OWNER_ID)
+
+		random_avatars = [av for av in self.AVATARS.items() if av[1]["allow_random"]]
+		random.shuffle(random_avatars)
+
+		if len(name_to_replace) == 0:
+			starting_avatars = []
+			for _ in range(5):
+				starting_avatars.append(random_avatars.pop())
+
+			self.bot_data.current_avatar_rotation.clear()
+			for i in range(5):
+				this_avatar = starting_avatars[i]
+				await user.update_custom_reward(self.bot_data.avatar_rotation_ids[i], title=f"Avatar: {this_avatar[0]}", cost=500)
+				self.bot_data.current_avatar_rotation.append(this_avatar[0])
+		else:
+			while len(random_avatars) > 0:
+				new_avatar = random_avatars.pop()
+				if not f"Avatar: {new_avatar[0]}" in self.bot_data.current_avatar_rotation:
+					for i in range(5):
+						if self.bot_data.current_avatar_rotation[i] == name_to_replace:
+							await user.update_custom_reward(self.bot_data.avatar_rotation_ids[i], title=f"Avatar: {new_avatar[0]}", cost=500)
+							self.bot_data.current_avatar_rotation[i] = f"Avatar: {new_avatar[0]}"
+							break
+					break
 
 	def get_avatar_info_by_veadotube_name(self, veadotube_name: str) -> dict:
 		matches = [av for av in self.AVATARS.values() if av["veadotube_name"] == veadotube_name]
@@ -322,34 +369,50 @@ class Bot(commands.Bot):
 
 	@routines.routine(delta=datetime.timedelta(seconds=2))
 	async def randomize_connection_offline(self):
-		user = self.create_partialuser(user_id=self.OWNER_ID)
-		await user.update_custom_reward(self.REDEEMS["Connection Offline. . ."]["id"], cost=random.randint(100000000, 999999999))
+		try:
+			user = self.create_partialuser(user_id=self.OWNER_ID)
+			await user.update_custom_reward(self.REDEEMS["Connection Offline. . ."]["id"], cost=random.randint(100000000, 999999999))
+		except RuntimeError:
+			pass
+		except aiohttp.client_exceptions.ServerDisconnectedError:
+			pass
 
 	@routines.routine(delta=datetime.timedelta(seconds=2), wait_first=True)
 	async def poll_trello_queue(self):
-		user = self.create_partialuser(user_id=self.OWNER_ID)
-		new_queue = trello.get_trello_queue()
-		if len(new_queue) != self.bot_data.current_queue_size:
-			if len(new_queue) > self.bot_data.current_queue_size:
-				latest_donor = new_queue[-1]["name"].split("###")
-				if len(latest_donor) > 1:
-					if latest_donor[1].isdigit():
-						await send_message(user, sender=self.user, message=f"{latest_donor[0]}, you submitted a donation of less than $25, but you currently have a cooldown of {latest_donor[1]} days on getting an under $25 dono. You will be refunded.") # type: ignore
+		try:
+			user = self.create_partialuser(user_id=self.OWNER_ID)
+			new_queue = trello.get_trello_queue()
+			if len(new_queue) != self.bot_data.current_queue_size:
+				if len(new_queue) > self.bot_data.current_queue_size:
+					latest_donor = new_queue[-1]["name"].split("###")
+					if len(latest_donor) > 1:
+						if latest_donor[1].isdigit():
+							await send_message(user, sender=self.user, message=f"{latest_donor[0]}, you submitted a donation of less than $25, but you currently have a cooldown of {latest_donor[1]} days on getting an under $25 dono. You will be refunded.") # type: ignore
+						else:
+							await send_message(user, sender=self.user, message=f"{latest_donor[0]}, you are already on the queue. You will be refunded.") # type: ignore
 					else:
-						await send_message(user, sender=self.user, message=f"{latest_donor[0]}, you are already on the queue. You will be refunded.") # type: ignore
-				else:
-					await user.send_announcement(moderator=self.user, message=f"{latest_donor[0]} has been added to the queue.", color="orange") # type: ignore
+						await user.send_announcement(moderator=self.user, message=f"{latest_donor[0]} has been added to the queue.", color="orange") # type: ignore
 
-			current_stream_title = (await user.fetch_channel_info()).title
-			if "queue size" in current_stream_title:
-				await user.modify_channel(title=re.sub(r"\[\d+\]", f"[{len(new_queue)}]", current_stream_title))
-				self.bot_data.current_queue_size = len(new_queue)
+				current_stream_title = (await user.fetch_channel_info()).title
+				if "queue size" in current_stream_title:
+					await user.modify_channel(title=re.sub(r"\[\d+\]", f"[{len(new_queue)}]", current_stream_title))
+					self.bot_data.current_queue_size = len(new_queue)
+		except RuntimeError:
+			pass
+		except aiohttp.client_exceptions.ServerDisconnectedError:
+			pass
+
 
 	@routines.routine(delta=datetime.timedelta(hours=1), iterations=1)
 	async def enable_planks(self):
-		if not self.bot_data.planks_disabled:
-			user = self.create_partialuser(user_id=self.OWNER_ID)
-			await user.update_custom_reward(self.REDEEMS["Planks!"]["id"], enabled=True)
+		try:
+			if not self.bot_data.planks_disabled:
+				user = self.create_partialuser(user_id=self.OWNER_ID)
+				await user.update_custom_reward(self.REDEEMS["Planks!"]["id"], enabled=True)
+		except RuntimeError:
+			pass
+		except aiohttp.client_exceptions.ServerDisconnectedError:
+			pass
 
 ########################################################################################################################
 
@@ -415,7 +478,7 @@ class CommandsChat(commands.Component):
 		elif action.type == ActionType.RANDOM_AVATAR:
 			with open(self.bot.CURRENT_SONG_PATH) as song_file:
 				current_song = song_file.read().strip()
-			
+
 			previous_avatar = self.bot_data.current_avatar
 			new_avatar = {}
 			song_override = False
@@ -645,11 +708,12 @@ class CommandsChat(commands.Component):
 			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS["Wish on a Star"]["veadotube_name"], 2.0))
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time / 60:.5g} minutes ago... {string_to_leetspeak(f"and {get_pronouns(payload.user.name, PronounType.THEIR)} wish just came true!")}") # type: ignore
 			await user.update_custom_reward(self.bot.REDEEMS["Wish on a Star"]["id"], enabled=True)
-		elif payload.reward.title in self.bot.AVATARS:
+		elif payload.reward.title.lstrip("Avatar: ") in self.bot.AVATARS:
 			if payload.reward.title == "Peer Pressure":
 				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0))
 			else:
-				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title]["veadotube_name"], 2.0))
+				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title.lstrip("(T) ")]["veadotube_name"], 2.0))
+				await self.bot.setup_avatar_rotation(payload.reward.title)
 		#if it's not in the avatar list, compare to other redeems
 		elif payload.reward.id == self.bot.REDEEMS["Random Avatar"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0))
