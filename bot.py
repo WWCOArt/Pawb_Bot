@@ -144,7 +144,10 @@ class Bot(commands.Bot):
 		self.poll_trello_queue.start()
 
 		if not DIANE_TEST_MODE:
-			self.obs_websocket = obsws_python.ReqClient(host="localhost", port=4455, password=self.OBS_WEBSOCKET_PASSWORD, timeout=3)
+			try:
+				self.obs_websocket = obsws_python.ReqClient(host="localhost", port=4455, password=self.OBS_WEBSOCKET_PASSWORD, timeout=3)
+			except:
+				pass # TEMPORARY
 
 		LOGGER.info("Finished setup hook!")
 
