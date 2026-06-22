@@ -715,7 +715,7 @@ class CommandsChat(commands.Component):
 			if payload.reward.title == "Peer Pressure":
 				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0))
 			else:
-				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title.lstrip("(T) ")]["veadotube_name"], 2.0))
+				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title.lstrip("Avatar: ")]["veadotube_name"], 2.0))
 				await self.bot.setup_avatar_rotation(payload.reward.title)
 		#if it's not in the avatar list, compare to other redeems
 		elif payload.reward.id == self.bot.REDEEMS["Random Avatar"]["id"]:
