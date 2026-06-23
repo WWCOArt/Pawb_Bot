@@ -12,7 +12,7 @@ import obsws_python
 import http.server
 import aiohttp.client_exceptions
 
-VERSION_NUMBER = "0.4.3"
+VERSION_NUMBER = "0.4.4"
 
 DIANE_TEST_MODE = False
 
@@ -181,13 +181,16 @@ class Bot(commands.Bot):
 		if not DIANE_TEST_MODE:
 			subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
 
-	async def setup_avatar_rotation(self, name_to_replace: str = ""):
+	async def setup_avatar_rotation(self, id_to_replace: str = ""):
 		user = self.create_partialuser(user_id=self.OWNER_ID)
 
 		random_avatars = [av for av in self.AVATARS.items() if av[1]["allow_random"]]
 		random.shuffle(random_avatars)
 
-		if len(name_to_replace) == 0:
+		if len(id_to_replace) == 0:
+			for i, redeem_id in enumerate(self.bot_data.avatar_rotation_ids):
+				await user.update_custom_reward(redeem_id, title=f"AVATAR {i + 1}")
+
 			starting_avatars = []
 			for _ in range(5):
 				starting_avatars.append(random_avatars.pop())
@@ -201,11 +204,9 @@ class Bot(commands.Bot):
 			while len(random_avatars) > 0:
 				new_avatar = random_avatars.pop()
 				if not f"Avatar: {new_avatar[0]}" in self.bot_data.current_avatar_rotation:
-					for i in range(5):
-						if self.bot_data.current_avatar_rotation[i] == name_to_replace:
-							await user.update_custom_reward(self.bot_data.avatar_rotation_ids[i], title=f"Avatar: {new_avatar[0]}", cost=500)
-							self.bot_data.current_avatar_rotation[i] = f"Avatar: {new_avatar[0]}"
-							break
+					index = self.bot_data.avatar_rotation_ids.index(id_to_replace)
+					await user.update_custom_reward(self.bot_data.avatar_rotation_ids[index], title=f"Avatar: {new_avatar[0]}", cost=500)
+					self.bot_data.current_avatar_rotation[index] = f"Avatar: {new_avatar[0]}"
 					break
 
 	def get_avatar_info_by_veadotube_name(self, veadotube_name: str) -> dict:
@@ -711,12 +712,12 @@ class CommandsChat(commands.Component):
 			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS["Wish on a Star"]["veadotube_name"], 2.0))
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time / 60:.5g} minutes ago... {string_to_leetspeak(f"and {get_pronouns(payload.user.name, PronounType.THEIR)} wish just came true!")}") # type: ignore
 			await user.update_custom_reward(self.bot.REDEEMS["Wish on a Star"]["id"], enabled=True)
-		elif payload.reward.title.lstrip("Avatar: ") in self.bot.AVATARS:
+		elif payload.reward.title.replace("Avatar: ", "") in self.bot.AVATARS:
 			if payload.reward.title == "Peer Pressure":
 				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0))
 			else:
-				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title.lstrip("Avatar: ")]["veadotube_name"], 2.0))
-				await self.bot.setup_avatar_rotation(payload.reward.title)
+				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title.replace("Avatar: ", "")]["veadotube_name"], 2.0))
+				await self.bot.setup_avatar_rotation(payload.reward.id)
 		#if it's not in the avatar list, compare to other redeems
 		elif payload.reward.id == self.bot.REDEEMS["Random Avatar"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0))
