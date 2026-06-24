@@ -764,7 +764,7 @@ class CommandsChat(commands.Component):
 			await send_message(user, sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
 		elif payload.reward.id == self.bot.REDEEMS["First!"]["id"]:
 			self.bot_data.increment_first_count(payload.user.name) # type: ignore
-			await user.update_custom_reward(REDEEMS["First!"]["id"], title=f"{payload.user.display_name} was first this stream!", prompt=f"They've been first {self.bot_data.get_first_count(payload.user.name)} times!") # type: ignore
+			await user.update_custom_reward(self.bot.REDEEMS["First!"]["id"], title=f"{payload.user.display_name} was first this stream!", prompt=f"They've been first {self.bot_data.get_first_count(payload.user.name)} times!") # type: ignore
 
 		# silly mode
 		if self.bot_data.silly_mode:
