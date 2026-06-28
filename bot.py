@@ -748,6 +748,10 @@ class CommandsChat(commands.Component):
 					pass
 				elif trap_type == "Skew":
 					pass
+			else:
+				if check == "Fox Rule":
+					rule = self.bot_data.get_foxrule()
+					await send_message(user, sender=self.bot.user, message=rule) # type: ignore
 		elif payload.reward.id == self.bot.REDEEMS["Memory Leak"]["id"]:
 			self.bot_data.silly_mode ^= True
 			await send_message(user, sender=self.bot.user, message=f"Silly Mode {'activated' if self.bot_data.silly_mode else 'deactivated'}") # type: ignore
