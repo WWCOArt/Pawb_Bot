@@ -662,7 +662,7 @@ class CommandsChat(commands.Component):
 # Redeems
 ########################################################################################################################
 
-	def find_check(self) -> tuple[str, CheckType]:
+	def find_check(self) -> tuple[str, CheckType, str]:
 		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 		progression_items = ([
 			"Progressive Draconification Curse",
@@ -690,7 +690,7 @@ class CommandsChat(commands.Component):
 		check = random.choice(check_array[0])
 		check_type = check_array[1]
 
-		return check, check_type
+		return check, check_type, "Diane" if check_type == CheckType.PROGRESSION and self.bot_data.diane_dragon_level < 4 and random.binomialvariate(p=0.3) else "Sierra"
 
 	@commands.Component.listener()
 	async def event_custom_redemption_add(self, payload: twitchio.ChannelPointsRedemptionAdd):
@@ -729,13 +729,20 @@ class CommandsChat(commands.Component):
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
 			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.current_avatar, duration))
 		elif payload.reward.id == self.bot.REDEEMS["Peer Pressure"]["id"]:
-			check, check_type = self.find_check()
-			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} found Sierra's {check}.") # type: ignore
+			check, check_type, target_person = self.find_check()
+			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} found {target_person}'s {check}.") # type: ignore
 			if check_type == CheckType.PROGRESSION:
-				if self.bot_data.peer_pressure_level == 6:
-					await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 10.0))
-				elif self.bot_data.peer_pressure_level < 6:
-					await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0))
+				if target_person == "Sierra":
+					if self.bot_data.peer_pressure_level == 6:
+						await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 10.0))
+					elif self.bot_data.peer_pressure_level < 6:
+						await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0))
+				else:
+					self.bot_data.diane_dragon_level += 1
+					if self.bot_data.diane_dragon_level == 4:
+						self.bot_data.set_current_chatter_form("fractaldiane", "dragon")
+
+					await send_message(user, sender=self.bot.user, message=f"Diane is now {25 * self.bot_data.diane_dragon_level}% a dragon.") # type: ignore
 			elif check_type == CheckType.TRAP:
 				trap_type = check.split()[0]
 				if trap_type == "Invisibility":

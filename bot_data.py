@@ -16,6 +16,8 @@ class BotData():
 		self.peer_pressure_level = 0
 		self.planks_disabled = False
 
+		self.diane_dragon_level = 0
+
 		self.action_queue = deque[AvatarAction]()
 		self.stream_markers = list[tuple[str, int, int, int]]()
 
