@@ -9,10 +9,10 @@ import re
 import requests
 import easygui
 import obsws_python
-import http.server
 import aiohttp.client_exceptions
+from aiohttp import web
 
-VERSION_NUMBER = "0.4.4"
+VERSION_NUMBER = "0.5"
 
 DIANE_TEST_MODE = False
 
@@ -99,7 +99,10 @@ class Bot(commands.Bot):
 
 		user = self.create_partialuser(user_id=self.OWNER_ID)
 
-		await user.update_custom_reward(self.REDEEMS["Wish on a Star"]["id"], enabled=True)
+		# turn wish on a star back on if it was disabled at end of stream because a wish never finished
+		wish_redeem = (await user.fetch_custom_rewards(ids=[self.REDEEMS["Wish on a Star"]["id"]]))[0]
+		if not wish_redeem.enabled:
+			await user.update_custom_reward(self.REDEEMS["Wish on a Star"]["id"], enabled=True)
 
 		# reset everything if this is a new stream day
 		last_start_time = self.bot_data.get_last_start_time()
@@ -151,6 +154,20 @@ class Bot(commands.Bot):
 
 		LOGGER.info("Finished setup hook!")
 
+		# http server
+		self.http_server = web.Application()
+		self.http_server.add_routes([
+			web.post("/ping", self.http_pingpong),
+			web.post("/changeAvatar/{avatar}", self.http_change_avatar),
+			web.post("/changeScene/{scene}", self.http_change_scene),
+			web.post("/bestButton", self.http_bestbutton),
+		])
+
+		self.http_runner = web.AppRunner(self.http_server)
+		await self.http_runner.setup()
+		site = web.TCPSite(self.http_runner, "localhost", 9460)
+		await site.start()
+
 		# streamer command input
 		session = PromptSession()
 		while True:
@@ -158,17 +175,10 @@ class Bot(commands.Bot):
 				inp = await session.prompt_async("> ")
 				await self.process_input(inp)
 
-	#async def run_http_server(self):
-	#	class Server(http.server.BaseHTTPRequestHandler):
-	#		def do_GET(self):
-	#			pass
-	#
-	#	server = http.server.HTTPServer(("", 9002), Server)
-	#	server.serve_forever()
-
 	async def shut_down(self):
-		self.obs_websocket.disconnect()
 		self.bot_data.database.close()
+		if not DIANE_TEST_MODE:
+			self.obs_websocket.disconnect()
 
 	def set_current_avatar(self, bot_data: BotData, av: str):
 		bot_data.current_avatar = av
@@ -244,6 +254,9 @@ class Bot(commands.Bot):
 		with open("greetings.json", encoding="utf8") as greetings_file:
 			self.GREETINGS = json.load(greetings_file)
 
+	async def push_best_button(self):
+		await user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary", color="purple") # type: ignore
+
 ########################################################################################################################
 # OBS
 ########################################################################################################################
@@ -289,7 +302,7 @@ class Bot(commands.Bot):
 			await send_message(user, sender=self.user, message=" ".join(input_split[1:])) # type: ignore
 		elif command == "best" or command == "best_button":
 			if not self.bot_data.best_button_broken:
-				await user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary", color="purple") # type: ignore
+				await self.push_best_button()
 		elif command == "next":
 			requests.post(f"{self.CLOUD_WEBHOOK_URL}?advance_queue")
 			queue = trello.get_trello_queue()
@@ -419,6 +432,32 @@ class Bot(commands.Bot):
 			pass
 
 ########################################################################################################################
+# HTTP Server handlers
+########################################################################################################################
+
+	async def http_pingpong(self, request: web.Request) -> web.Response:
+		print('pong')
+		return web.Response(text="pong")
+
+	async def http_change_avatar(self, request: web.Request) -> web.Response:
+		avatar = request.match_info.get("avatar")
+		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, avatar, 0.05)) # type: ignore
+		return web.Response(text=f"Changed avatar to {avatar}")
+
+	async def http_change_scene(self, request: web.Request) -> web.Response:
+		scene = request.match_info.get("scene")
+		if scene == "brb":
+			await self.go_to_brb()
+		elif scene == "main":
+			await self.return_from_brb()
+
+		return web.Response(text=f"Changed to scene {scene}")
+
+	async def http_bestbutton(self, request: web.Request) -> web.Response:
+		await self.push_best_button()
+		return web.Response()
+
+########################################################################################################################
 
 class CommandsChat(commands.Component):
 	def __init__(self, bot: Bot, bot_data: BotData):
@@ -457,9 +496,7 @@ class CommandsChat(commands.Component):
 
 	async def advance_action_queue(self):
 		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
-		
-		#print(f"Advancing queue ({self.bot_data.get_action_queue_string()})")
-		#print(traceback.print_stack())
+
 		action = self.bot_data.action_queue[0]
 		if action.type == ActionType.AVATAR_CHANGE:
 			previous_avatar = self.bot_data.current_avatar
