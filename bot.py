@@ -450,6 +450,8 @@ class Bot(commands.Bot):
 			await self.go_to_brb()
 		elif scene == "main":
 			await self.return_from_brb()
+		elif scene == "end":
+			self.obs_websocket.set_current_program_scene("BRB")
 
 		return web.Response(text=f"Changed to scene {scene}")
 
