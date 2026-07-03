@@ -12,7 +12,7 @@ import obsws_python
 import aiohttp.client_exceptions
 from aiohttp import web
 
-VERSION_NUMBER = "0.5"
+VERSION_NUMBER = "0.5.1"
 
 DIANE_TEST_MODE = False
 
@@ -191,6 +191,11 @@ class Bot(commands.Bot):
 		if not DIANE_TEST_MODE:
 			subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
 
+	def randomize_enfield_size(self):
+		size = random.randint(1, 4)
+		#if not DIANE_TEST_MODE:
+		#	subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents enfieldSize set "{size}"')
+
 	async def setup_avatar_rotation(self, id_to_replace: str = ""):
 		user = self.create_partialuser(user_id=self.OWNER_ID)
 
@@ -262,29 +267,27 @@ class Bot(commands.Bot):
 ########################################################################################################################
 
 	async def go_to_brb(self):
-		if self.obs_websocket.get_current_program_scene().scene_name == "Art Streams": # type: ignore
-			user = self.create_partialuser(user_id=self.OWNER_ID)
+		user = self.create_partialuser(user_id=self.OWNER_ID)
 
-			self.obs_websocket.set_studio_mode_enabled(True)
-			await asyncio.sleep(0.6)
-			self.obs_websocket.set_current_program_scene("BRB")
-			await asyncio.sleep(2.4)
-			self.obs_websocket.set_studio_mode_enabled(False)
-			await asyncio.sleep(3.5)
-			await user.send_announcement(moderator=self.user, color="orange", message="Sierra's taking a short break. We'll be running a 3-minute ad break to minimize preroll ads.") # type: ignore
-			await user.start_commercial(length=180)
-			# TODO: enfield size
+		self.obs_websocket.set_studio_mode_enabled(True)
+		await asyncio.sleep(0.6)
+		self.obs_websocket.set_current_program_scene("BRB")
+		await asyncio.sleep(2.4)
+		self.obs_websocket.set_studio_mode_enabled(False)
+		await asyncio.sleep(3.5)
+		await user.send_announcement(moderator=self.user, color="orange", message="Sierra's taking a short break. We'll be running a 3-minute ad break to minimize preroll ads.") # type: ignore
+		await user.start_commercial(length=180)
 
 	async def return_from_brb(self):
-		if self.obs_websocket.get_current_program_scene().scene_name == "BRB": # type: ignore
-			self.obs_websocket.set_studio_mode_enabled(True)
-			await asyncio.sleep(0.6)
-			self.obs_websocket.set_current_program_scene("Art Streams")
-			await asyncio.sleep(2.4)
-			self.obs_websocket.set_studio_mode_enabled(False)
-			await asyncio.sleep(0.5)
-			brb_id = self.obs_websocket.get_scene_item_id("BRB", "brb temp 2").scene_item_id # type: ignore
-			self.obs_websocket.set_scene_item_enabled("BRB", brb_id, False)
+		self.randomize_enfield_size()
+		self.obs_websocket.set_studio_mode_enabled(True)
+		await asyncio.sleep(0.6)
+		self.obs_websocket.set_current_program_scene("Art Streams")
+		await asyncio.sleep(2.4)
+		self.obs_websocket.set_studio_mode_enabled(False)
+		await asyncio.sleep(0.5)
+		brb_id = self.obs_websocket.get_scene_item_id("BRB", "brb temp 2").scene_item_id # type: ignore
+		self.obs_websocket.set_scene_item_enabled("BRB", brb_id, False)
 
 ########################################################################################################################
 # Streamer console commands
@@ -420,12 +423,21 @@ class Bot(commands.Bot):
 			pass
 
 
-	@routines.routine(delta=datetime.timedelta(hours=1), iterations=1)
+	@routines.routine(delta=datetime.timedelta(hours=1), iterations=1, wait_first=True)
 	async def enable_planks(self):
 		try:
 			if not self.bot_data.planks_disabled:
 				user = self.create_partialuser(user_id=self.OWNER_ID)
 				await user.update_custom_reward(self.REDEEMS["Planks!"]["id"], enabled=True)
+		except RuntimeError:
+			pass
+		except aiohttp.client_exceptions.ServerDisconnectedError:
+			pass
+
+	@routines.routine(delta=datetime.timedelta(hours=1), wait_first=True)
+	async def change_avatar_rotation(self):
+		try:
+			await self.setup_avatar_rotation()
 		except RuntimeError:
 			pass
 		except aiohttp.client_exceptions.ServerDisconnectedError:
@@ -756,7 +768,8 @@ class CommandsChat(commands.Component):
 				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0))
 			else:
 				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title.replace("Avatar: ", "")]["veadotube_name"], 2.0))
-				await self.bot.setup_avatar_rotation(payload.reward.id)
+				if payload.reward.title.startswith("Avatar: "):
+					await self.bot.setup_avatar_rotation(payload.reward.id)
 		#if it's not in the avatar list, compare to other redeems
 		elif payload.reward.id == self.bot.REDEEMS["Random Avatar"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0))
@@ -767,6 +780,8 @@ class CommandsChat(commands.Component):
 			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.5)
 			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
 			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.current_avatar, duration))
+		elif payload.reward.id == self.bot.REDEEMS["Blink"]["id"]:
+			self.bot.randomize_enfield_size()
 		elif payload.reward.id == self.bot.REDEEMS["Peer Pressure"]["id"]:
 			check, check_type, target_person = self.find_check()
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} found {target_person}'s {check}.") # type: ignore
