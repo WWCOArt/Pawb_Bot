@@ -11,6 +11,7 @@ import easygui
 import obsws_python
 import aiohttp.client_exceptions
 from aiohttp import web
+import sys
 
 VERSION_NUMBER = "0.5.1"
 
@@ -183,10 +184,13 @@ class Bot(commands.Bot):
 	def set_current_avatar(self, bot_data: BotData, av: str):
 		bot_data.current_avatar = av
 		if not DIANE_TEST_MODE:
-			requests.post("http://localhost:9450/webhook", None, {
-				"trigger": "avatarWebhook",
-				"avatar": av,
-			})
+			try:
+				requests.post("http://localhost:9450/webhook", None, {
+					"trigger": "avatarWebhook",
+					"avatar": av,
+				})
+			except:
+				LOGGER.error(f"Failed to POST avatar request to SAMMI: {sys.exc_info()}")
 
 		if not DIANE_TEST_MODE:
 			subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
