@@ -145,7 +145,9 @@ class Bot(commands.Bot):
 		self.bot_data.current_queue_size = len(trello.get_trello_queue())
 
 		self.randomize_connection_offline.start()
-		self.poll_trello_queue.start()
+		#self.poll_trello_queue.start()
+		self.enable_planks.start()
+		self.change_avatar_rotation.start()
 
 		if not DIANE_TEST_MODE:
 			try:
