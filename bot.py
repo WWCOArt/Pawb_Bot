@@ -13,7 +13,7 @@ import aiohttp.client_exceptions
 from aiohttp import web
 import sys
 
-VERSION_NUMBER = "0.5.2"
+VERSION_NUMBER = "0.6"
 
 DIANE_TEST_MODE = False
 
@@ -352,9 +352,7 @@ class Bot(commands.Bot):
 				print('Missing parameters for command "queue_random"')
 		elif command == "headpats" or command == "hug":
 			is_hug = command == "hug"
-			all_interact_timings = self.get_avatar_info_by_veadotube_name(self.bot_data.current_avatar).get("interact_timings", 2.5)
-			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get(command, 2.5)
-			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(("default", 2.5))
+			duration = 4.01 if self.bot_data.current_avatar == "bigFox" else 2.510
 			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration)) # type: ignore
 		elif command == "noplanks":
 			await user.update_custom_reward(self.REDEEMS["Planks!"]["id"], enabled=False)
@@ -556,10 +554,10 @@ class CommandsChat(commands.Component):
 			self.bot.set_current_avatar(self.bot_data, new_avatar["veadotube_name"])
 			await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(new_avatar["description"])) # type: ignore
 			await self.update_redeem_availability(previous_avatar, new_avatar["veadotube_name"])
-		# elif action.type == ActionType.HEADPATS:
-		# 	subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "headpats"')
-		# elif action.type == ActionType.HUG:
-		# 	subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "hug"')
+		elif action.type == ActionType.HEADPATS or action.type == ActionType.HUG:
+			is_hug = action.type == ActionType.HUG
+			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents username set "{action.user_display_name}"')
+			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents interact set "{"hug" if is_hug else "headpats"}"')
 		elif action.type == ActionType.PEER_PRESSURE:
 			if self.bot_data.current_avatar == "peerPressure":
 				if not DIANE_TEST_MODE:
@@ -591,8 +589,9 @@ class CommandsChat(commands.Component):
 
 		await asyncio.sleep(action.duration)
 
-		# if action.type == ActionType.HEADPATS or action.type == ActionType.HUG and not DIANE_TEST_MODE:
-		# 	subprocess.run(f'{VEADOTUBE_PATH} -i 0 nodes stateEvents expression set "neutral"')
+		if action.type == ActionType.HEADPATS or action.type == ActionType.HUG:
+			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents interact set "(off)"')
+			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents username set "default"')
 
 		self.bot_data.action_queue.popleft()
 		if len(self.bot_data.action_queue) > 0:
@@ -612,7 +611,7 @@ class CommandsChat(commands.Component):
 	async def event_stream_online(self, payload: twitchio.StreamOnline):
 		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 
-		await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "skunkLineless", 1.0))
+		await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, "skunkLineless", 1.0, ""))
 
 		await send_message(user, sender=self.bot.user, message=f"PawbOS v{VERSION_NUMBER} booting up.") # type: ignore
 		await asyncio.sleep(0.5)
@@ -636,7 +635,13 @@ class CommandsChat(commands.Component):
 		await send_message(user, sender=self.bot.user, message="PawbOS shutting down.") # type: ignore
 		if len(self.bot_data.stream_markers) > 0:
 			all_markers = "\n".join([f"{marker[1]:02}:{marker[2]:02}:{marker[3]:02}: {marker[0]}" for marker in self.bot_data.stream_markers])
-			easygui.msgbox(f"Remember to create these stream highlights:\n{all_markers}", title="Hey Sierra!")
+			string = f"Remember to create these stream highlights:\n{all_markers}"
+
+			outfile = open(f"Highlights {datetime.datetime.now()}.txt", "w")
+			outfile.write(string)
+			outfile.close()
+
+			easygui.msgbox(string, title="Hey Sierra!")
 
 ########################################################################################################################
 # Chat message functionality
@@ -765,26 +770,24 @@ class CommandsChat(commands.Component):
 			else:
 				await asyncio.sleep(wait_time)
 
-			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS["Wish on a Star"]["veadotube_name"], 2.0))
+			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS["Wish on a Star"]["veadotube_name"], 2.0, payload.user.display_name)) # type: ignore
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time / 60:.5g} minutes ago... {string_to_leetspeak(f"and {get_pronouns(payload.user.name, PronounType.THEIR)} wish just came true!")}") # type: ignore
 			await user.update_custom_reward(self.bot.REDEEMS["Wish on a Star"]["id"], enabled=True)
 		elif payload.reward.title.replace("Avatar: ", "") in self.bot.AVATARS:
 			if payload.reward.title == "Peer Pressure":
-				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0))
+				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0, payload.user.display_name)) # type: ignore
 			else:
-				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title.replace("Avatar: ", "")]["veadotube_name"], 2.0))
+				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title.replace("Avatar: ", "")]["veadotube_name"], 2.0, payload.user.display_name)) # type: ignore
 				if payload.reward.title.startswith("Avatar: "):
 					await self.bot.setup_avatar_rotation(payload.reward.id)
 		#if it's not in the avatar list, compare to other redeems
 		elif payload.reward.id == self.bot.REDEEMS["Random Avatar"]["id"]:
-			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0))
+			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0, payload.user.display_name)) # type: ignore
 		# headpats and hugs.
 		elif payload.reward.id == self.bot.REDEEMS["HeadPats"]["id"] or payload.reward.id == self.bot.REDEEMS["Hug!"]["id"]:
 			is_hug = payload.reward.id == self.bot.REDEEMS["Hug!"]["id"]
-			all_interact_timings = self.bot.get_avatar_info_by_veadotube_name(self.bot_data.current_avatar).get("interact_timings", 2.5)
-			this_interact_timings = all_interact_timings if isinstance(all_interact_timings, float) else all_interact_timings.get("hug" if is_hug else "headpats", 2.5)
-			duration = this_interact_timings if isinstance(this_interact_timings, float) else this_interact_timings.get(payload.user.name, this_interact_timings.get("default", 2.5))
-			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.current_avatar, duration))
+			duration = 4.01 if self.bot_data.current_avatar == "bigFox" else 2.510
+			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.current_avatar, duration, payload.user.display_name)) # type: ignore
 		elif payload.reward.id == self.bot.REDEEMS["Blink"]["id"]:
 			self.bot.randomize_enfield_size()
 		elif payload.reward.id == self.bot.REDEEMS["Peer Pressure"]["id"]:
@@ -793,9 +796,9 @@ class CommandsChat(commands.Component):
 			if check_type == CheckType.PROGRESSION:
 				if target_person == "Sierra":
 					if self.bot_data.peer_pressure_level == 6:
-						await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 10.0))
+						await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 10.0, payload.user.display_name)) # type: ignore
 					elif self.bot_data.peer_pressure_level < 6:
-						await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0))
+						await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 2.0, payload.user.display_name)) # type: ignore
 				else:
 					self.bot_data.diane_dragon_level += 1
 					if self.bot_data.diane_dragon_level == 4:

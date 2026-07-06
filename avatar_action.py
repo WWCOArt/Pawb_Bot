@@ -8,10 +8,11 @@ class ActionType(Enum):
 	PEER_PRESSURE = 4
 
 class AvatarAction:
-	def __init__(self, type_: ActionType, avatar: str, duration: float):
+	def __init__(self, type_: ActionType, avatar: str, duration: float, user_display_name: str):
 		self.type = type_
 		self.avatar = avatar
 		self.duration = duration
+		self.user_display_name = user_display_name
 
 	def __str__(self) -> str:
-		return f"[{self.type}, {self.avatar}, {self.duration}]"
+		return f"[{self.type}, {self.avatar}, {self.duration}, {self.user_display_name}]"
