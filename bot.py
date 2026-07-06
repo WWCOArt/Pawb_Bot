@@ -164,6 +164,8 @@ class Bot(commands.Bot):
 			web.post("/changeAvatar/{avatar}", self.http_change_avatar),
 			web.post("/changeScene/{scene}", self.http_change_scene),
 			web.post("/bestButton", self.http_bestbutton),
+			web.post("/headpats", self.http_headpats),
+			web.post("/hug", self.http_hug),
 		])
 
 		self.http_runner = web.AppRunner(self.http_server)
@@ -325,9 +327,9 @@ class Bot(commands.Bot):
 		elif command == "avatar":
 			if len(input_split) > 1:
 				if input_split[1] == "random":
-					await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0)) # type: ignore
+					await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0, "")) # type: ignore
 				else:
-					await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, input_split[1], 2.0)) # type: ignore
+					await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, input_split[1], 2.0, "")) # type: ignore
 			else:
 				print(f"Current avatar: {self.bot_data.current_avatar}")
 		elif command == "veado" or command == "veadotube":
@@ -355,7 +357,7 @@ class Bot(commands.Bot):
 		elif command == "headpats" or command == "hug":
 			is_hug = command == "hug"
 			duration = 4.01 if self.bot_data.current_avatar == "bigFox" else 2.510
-			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration)) # type: ignore
+			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration, "default")) # type: ignore
 		elif command == "noplanks":
 			await user.update_custom_reward(self.REDEEMS["Planks!"]["id"], enabled=False)
 			self.bot_data.planks_disabled = True
@@ -457,7 +459,7 @@ class Bot(commands.Bot):
 
 	async def http_change_avatar(self, request: web.Request) -> web.Response:
 		avatar = request.match_info.get("avatar")
-		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, avatar, 0.05)) # type: ignore
+		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, avatar, 0.05, "")) # type: ignore
 		return web.Response(text=f"Changed avatar to {avatar}")
 
 	async def http_change_scene(self, request: web.Request) -> web.Response:
@@ -473,6 +475,16 @@ class Bot(commands.Bot):
 
 	async def http_bestbutton(self, request: web.Request) -> web.Response:
 		await self.push_best_button()
+		return web.Response()
+
+	async def http_headpats(self, request: web.Request) -> web.Response:
+		duration = 4.01 if self.bot_data.current_avatar == "bigFox" else 2.510
+		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HEADPATS, self.bot_data.avatar, duration, "default")) # type: ignore
+		return web.Response()
+
+	async def http_hug(self, request: web.Request) -> web.Response:
+		duration = 2.510
+		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG, self.bot_data.avatar, duration, "default")) # type: ignore
 		return web.Response()
 
 ########################################################################################################################
@@ -740,6 +752,9 @@ class CommandsChat(commands.Component):
 			"Sao Lore",
 			"Fox Rule",
 			"Fish Nets",
+			"Indulgence Star",
+			"Full-Size Pinball Machine",
+			"Suborbital Salvage Company Asset Report",
 		], CheckType.FILLER)
 
 		trap_items = ([

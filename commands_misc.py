@@ -63,15 +63,15 @@ class CommandsMisc(commands.Component):
 
 	@commands.command(aliases=["diane"])
 	async def fractaldiane(self, context: commands.Context):
-		await send_message_context(context, "Diane (They/She) is the grey familiar with the flower crown. She makes wonderful music and has contributed many songs to the stream including the ending themes, and any of the character themes you hear. Her music can be found at https://soundcloud.com/fractal-diane. She has also helped significantly in the creation of this bot.")
+		await send_message_context(context, "Diane (They/She) is the purple-grey familiar with the flower crown. She makes wonderful music and has contributed many songs to the stream including the ending themes, and any of the character themes you hear. Her music can be found at https://soundcloud.com/fractal-diane. She has also helped significantly in the creation of this bot.")
 
 	@commands.command(aliases=["flo", "fwo"])
 	async def flomuffin(self, context: commands.Context):
 		await send_message_context(context, "Flomuffin (She/Pup) is Sierra's little sister. She is most often seen on the stream as a white spring wolf, or a gargoyle. She streams as well at https://twitch.tv/flomuffin")
 
-	@commands.command(aliases=["games","distractions"])
+	@commands.command(aliases=["games", "distractions"])
 	async def powerword(self, context: commands.Context):
-		await send_message_context(context, "Available options for Powerword Distraction: Tetris Effect, Not Tetris 2, Sand Tetris, Broomsweeper, Raccooin, Suborbital Salvage, Pinball, Wireworks, Distance, Stackflow , Peglin, Race the Sun, Super hexagon, Gambonanza, Shotgun King.")
+		await send_message_context(context, "Available options for Power Word Distract: Tetris Effect, Not Tetris 2, Sand Tetris, Broomsweeper, Raccoin, Suborbital Salvage, Pinball, Wireworks, Distance, Stackflow, Peglin, Race the Sun, Super Hexagon, Gambonanza, Shotgun King.")
 
 	# @commands.command()
 	# async def tirgatail(self, context: commands.Context):
