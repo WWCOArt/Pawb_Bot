@@ -151,9 +151,9 @@ class Bot(commands.Bot):
 
 		if not DIANE_TEST_MODE:
 			try:
-				self.obs_websocket = obsws_python.ReqClient(host="localhost", port=4455, password=self.OBS_WEBSOCKET_PASSWORD, timeout=3)
+				self.obs_websocket = obsws_python.ReqClient(host="localhost", port=4455, password=self.OBS_WEBSOCKET_PASSWORD, timeout=5)
 			except:
-				pass # TEMPORARY
+				LOGGER.error(f"Failed to connect to OBS websocket: {sys.exc_info()}")
 
 		LOGGER.info("Finished setup hook!")
 

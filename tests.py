@@ -38,7 +38,7 @@ class TestJsonFunctions(unittest.TestCase):
 
 	def test_interaction_duration_user_empty_action(self):
 		self.assertEqual(self.bot.get_interact_duration(True, "bigFox", "blah"), 2.510)
-		
+
 
 if __name__ == "__main__":
 	unittest.main()
