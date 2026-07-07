@@ -236,6 +236,19 @@ class Bot(commands.Bot):
 		matches = [av for av in self.AVATARS.values() if av["veadotube_name"] == veadotube_name]
 		return matches[0] if len(matches) > 0 else {}
 	
+	def get_interact_duration(self, is_hug: bool, avatar: str, user: str) -> float:
+		action = "hug" if is_hug else "headpats"
+		avatar_durations = self.INTERACT_DURATIONS["avatars"].get(avatar, {})
+		if len(avatar_durations) > 0:
+			action_durations = avatar_durations.get(action, {})
+			if len(action_durations) > 0:
+				if user in action_durations:
+					return action_durations[user]
+				else:
+					return action_durations["default"]
+
+		return self.INTERACT_DURATIONS[f"default_{action}"]
+	
 	def load_json(self):
 		bot_secrets = open("secrets.json", encoding="utf8")
 		bot_secrets_json = json.load(bot_secrets)
@@ -260,6 +273,9 @@ class Bot(commands.Bot):
 			for avatar in self.AVATARS.values():
 				self.REDEEMS_DEFAULT_DISABLED.update(avatar.get("enable_redeems", []))
 				self.REDEEMS_DEFAULT_ENABLED.update(avatar.get("disable_redeems", []))
+
+		with open("interact_durations.json", encoding="utf8") as interacts_file:
+			self.INTERACT_DURATIONS = json.load(interacts_file)
 
 		with open("redeems.json", encoding="utf8") as redeem_ids_file:
 			self.REDEEMS = json.load(redeem_ids_file)
@@ -356,7 +372,7 @@ class Bot(commands.Bot):
 				print('Missing parameters for command "queue_random"')
 		elif command == "headpats" or command == "hug":
 			is_hug = command == "hug"
-			duration = 4.01 if self.bot_data.current_avatar == "bigFox" else 2.510
+			duration = self.get_interact_duration(is_hug, self.bot_data.current_avatar, "")
 			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration, "default")) # type: ignore
 		elif command == "noplanks":
 			await user.update_custom_reward(self.REDEEMS["Planks!"]["id"], enabled=False)
@@ -478,12 +494,12 @@ class Bot(commands.Bot):
 		return web.Response()
 
 	async def http_headpats(self, request: web.Request) -> web.Response:
-		duration = 4.01 if self.bot_data.current_avatar == "bigFox" else 2.510
+		duration = self.get_interact_duration(False, self.bot_data.current_avatar, "")
 		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HEADPATS, self.bot_data.avatar, duration, "default")) # type: ignore
 		return web.Response()
 
 	async def http_hug(self, request: web.Request) -> web.Response:
-		duration = 2.510
+		duration = self.get_interact_duration(True, self.bot_data.current_avatar, "")
 		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG, self.bot_data.avatar, duration, "default")) # type: ignore
 		return web.Response()
 
@@ -803,7 +819,7 @@ class CommandsChat(commands.Component):
 		# headpats and hugs.
 		elif payload.reward.id == self.bot.REDEEMS["HeadPats"]["id"] or payload.reward.id == self.bot.REDEEMS["Hug!"]["id"]:
 			is_hug = payload.reward.id == self.bot.REDEEMS["Hug!"]["id"]
-			duration = 4.01 if self.bot_data.current_avatar == "bigFox" else 2.510
+			duration = self.bot.get_interact_duration(is_hug, self.bot_data.current_avatar, payload.user.name) # type: ignore
 			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.current_avatar, duration, payload.user.display_name)) # type: ignore
 		elif payload.reward.id == self.bot.REDEEMS["Blink"]["id"]:
 			self.bot.randomize_enfield_size()

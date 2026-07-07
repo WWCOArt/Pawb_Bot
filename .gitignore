@@ -9,6 +9,7 @@ config.json
 redeems.json
 redeems backup.json
 greetings.json
+interact_durations.json
 
 variables_non_db.json
 
