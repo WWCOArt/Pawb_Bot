@@ -780,7 +780,7 @@ class CommandsChat(commands.Component):
 			"Skew Trap",
 		], CheckType.TRAP)
 		
-		check_array = random.choices([progression_items if self.bot_data.peer_pressure_level < 7 else [], filler_items, trap_items], [55, 35, 10])[0]
+		check_array = random.choices([progression_items, filler_items, trap_items], [55 if self.bot_data.peer_pressure_level < 7 else 0, 35, 10])[0]
 		check = random.choice(check_array[0])
 		check_type = check_array[1]
 
