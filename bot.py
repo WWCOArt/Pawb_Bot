@@ -13,7 +13,7 @@ import aiohttp.client_exceptions
 from aiohttp import web
 import sys
 
-VERSION_NUMBER = "0.6"
+VERSION_NUMBER = "0.6.1"
 
 DIANE_TEST_MODE = False
 
@@ -23,7 +23,7 @@ from twitchio.ext import commands, routines
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
 
-from utility_functions import send_message, CheckType, send_message_context, string_to_leetspeak, get_pronouns, PronounType
+from utility_functions import send_message, CheckType, send_message_context, string_to_leetspeak, get_pronouns, PronounType, get_mainecoone_name
 
 import trello
 from bot_data import BotData
@@ -221,11 +221,17 @@ class Bot(commands.Bot):
 			self.bot_data.current_avatar_rotation.clear()
 			for i in range(5):
 				this_avatar = starting_avatars[i]
+				if this_avatar[0] == "Evening Shift Employee":
+					this_avatar[0] = get_mainecoone_name("pawb_bot")
+
 				await user.update_custom_reward(self.bot_data.avatar_rotation_ids[i], title=f"Avatar: {this_avatar[0]}", cost=500)
 				self.bot_data.current_avatar_rotation.append(this_avatar[0])
 		else:
 			while len(random_avatars) > 0:
 				new_avatar = random_avatars.pop()
+				if new_avatar[0] == "Evening Shift Employee":
+					new_avatar[0] = get_mainecoone_name("pawb_bot")
+
 				if not f"Avatar: {new_avatar[0]}" in self.bot_data.current_avatar_rotation:
 					index = self.bot_data.avatar_rotation_ids.index(id_to_replace)
 					await user.update_custom_reward(self.bot_data.avatar_rotation_ids[index], title=f"Avatar: {new_avatar[0]}", cost=500)
@@ -804,7 +810,8 @@ class CommandsChat(commands.Component):
 				await asyncio.sleep(wait_time)
 
 			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS["Wish on a Star"]["veadotube_name"], 2.0, payload.user.display_name)) # type: ignore
-			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time / 60:.5g} minutes ago... {string_to_leetspeak(f"and {get_pronouns(payload.user.name, PronounType.THEIR)} wish just came true!")}") # type: ignore
+			end_message = string_to_leetspeak(f"and {get_pronouns(payload.user.name, PronounType.THEIR)} wish just came true!") if self.bot_data.current_avatar != "skunkLineless" else string_to_leetspeak("but unfortunately, Sierra is already a skunk.")  # type: ignore
+			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time / 60:.5g} minutes ago... {end_message}") # type: ignore
 			await user.update_custom_reward(self.bot.REDEEMS["Wish on a Star"]["id"], enabled=True)
 		elif payload.reward.title.replace("Avatar: ", "") in self.bot.AVATARS:
 			if payload.reward.title == "Peer Pressure":
@@ -813,6 +820,7 @@ class CommandsChat(commands.Component):
 				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title.replace("Avatar: ", "")]["veadotube_name"], 2.0, payload.user.display_name)) # type: ignore
 				if payload.reward.title.startswith("Avatar: "):
 					await self.bot.setup_avatar_rotation(payload.reward.id)
+					await send_message(user, sender=self.bot.user, message=self.bot.REDEEMS[payload.reward.title.replace("Avatar: ", "")]["description"].replace("Random Avatar: ", "Avatar: ")) # type: ignore
 		#if it's not in the avatar list, compare to other redeems
 		elif payload.reward.id == self.bot.REDEEMS["Random Avatar"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0, payload.user.display_name)) # type: ignore
