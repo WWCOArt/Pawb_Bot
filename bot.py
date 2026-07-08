@@ -319,6 +319,14 @@ class Bot(commands.Bot):
 		brb_id = self.obs_websocket.get_scene_item_id("BRB", "brb temp 2").scene_item_id # type: ignore
 		self.obs_websocket.set_scene_item_enabled("BRB", brb_id, False)
 
+	async def go_to_end(self):
+		self.obs_websocket.set_studio_mode_enabled(True)
+		await asyncio.sleep(0.6)
+		self.obs_websocket.set_current_program_scene("Ending")
+		keyboard.press_and_release("ctrl+f9")
+		await asyncio.sleep(2.4)
+		self.obs_websocket.set_studio_mode_enabled(False)
+
 ########################################################################################################################
 # Streamer console commands
 ########################################################################################################################
@@ -491,7 +499,7 @@ class Bot(commands.Bot):
 		elif scene == "main":
 			await self.return_from_brb()
 		elif scene == "end":
-			self.obs_websocket.set_current_program_scene("BRB")
+			await self.go_to_end()
 
 		return web.Response(text=f"Changed to scene {scene}")
 
