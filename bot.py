@@ -827,7 +827,7 @@ class CommandsChat(commands.Component):
 				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title.replace("Avatar: ", "")]["veadotube_name"], 2.0, payload.user.display_name)) # type: ignore
 				if payload.reward.title.startswith("Avatar: "):
 					await self.bot.setup_avatar_rotation(payload.reward.id)
-					await send_message(user, sender=self.bot.user, message=self.bot.AVATARS[payload.reward.title.replace("Avatar: ", "")]["description"].replace("Random Avatar: ", "Avatar: ")) # type: ignore
+					#await send_message(user, sender=self.bot.user, message=self.bot.AVATARS[payload.reward.title.replace("Avatar: ", "")]["description"].replace("Random Avatar: ", "Avatar: ")) # type: ignore
 		#if it's not in the avatar list, compare to other redeems
 		elif payload.reward.id == self.bot.REDEEMS["Random Avatar"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0, payload.user.display_name)) # type: ignore
