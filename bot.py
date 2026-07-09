@@ -207,7 +207,7 @@ class Bot(commands.Bot):
 	async def setup_avatar_rotation(self, id_to_replace: str = ""):
 		user = self.create_partialuser(user_id=self.OWNER_ID)
 
-		random_avatars = [av for av in self.AVATARS.items() if av[1]["allow_random"]]
+		random_avatars = [list(av) for av in self.AVATARS.items() if av[1]["allow_random"]]
 		random.shuffle(random_avatars)
 
 		if len(id_to_replace) == 0:
