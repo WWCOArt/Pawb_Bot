@@ -816,8 +816,8 @@ class CommandsChat(commands.Component):
 			else:
 				await asyncio.sleep(wait_time)
 
-			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS["Wish on a Star"]["veadotube_name"], 2.0, payload.user.display_name)) # type: ignore
 			end_message = string_to_leetspeak(f"and {get_pronouns(payload.user.name, PronounType.THEIR)} wish just came true!") if self.bot_data.current_avatar != "skunkLineless" else string_to_leetspeak("but unfortunately, Sierra is already a skunk.")  # type: ignore
+			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS["Wish on a Star"]["veadotube_name"], 2.0, payload.user.display_name)) # type: ignore
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time / 60:.5g} minutes ago... {end_message}") # type: ignore
 			await user.update_custom_reward(self.bot.REDEEMS["Wish on a Star"]["id"], enabled=True)
 		elif payload.reward.title.replace("Avatar: ", "") in self.bot.AVATARS:
