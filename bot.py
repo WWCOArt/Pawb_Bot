@@ -13,7 +13,7 @@ import aiohttp.client_exceptions
 from aiohttp import web
 import sys
 
-VERSION_NUMBER = "0.6.1"
+VERSION_NUMBER = "0.6.2"
 
 DIANE_TEST_MODE = False
 
@@ -614,7 +614,6 @@ class CommandsChat(commands.Component):
 					self.bot.set_current_avatar(self.bot_data, "dragonSmall")
 					await self.update_redeem_availability(self.bot_data.current_avatar, "dragonSmall")
 			elif self.bot_data.current_avatar == "dragonSmall":
-				self.bot_data.peer_pressure_level += 1
 				if not DIANE_TEST_MODE:
 					subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents pressure set {self.bot_data.peer_pressure_level}')
 				await asyncio.sleep(0.5)
