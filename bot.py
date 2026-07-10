@@ -13,7 +13,7 @@ import aiohttp.client_exceptions
 from aiohttp import web
 import sys
 
-VERSION_NUMBER = "0.6.2"
+VERSION_NUMBER = "0.3.62"
 
 DIANE_TEST_MODE = False
 
