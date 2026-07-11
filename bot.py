@@ -387,7 +387,7 @@ class Bot(commands.Bot):
 		elif command == "headpats" or command == "hug":
 			is_hug = command == "hug"
 			duration = self.get_interact_duration(is_hug, self.bot_data.current_avatar, "")
-			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.avatar, duration, "default")) # type: ignore
+			await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.current_avatar, duration, "default")) # type: ignore
 		elif command == "noplanks":
 			await user.update_custom_reward(self.REDEEMS["Planks!"]["id"], enabled=False)
 			self.bot_data.planks_disabled = True
@@ -509,12 +509,12 @@ class Bot(commands.Bot):
 
 	async def http_headpats(self, request: web.Request) -> web.Response:
 		duration = self.get_interact_duration(False, self.bot_data.current_avatar, "")
-		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HEADPATS, self.bot_data.avatar, duration, "default")) # type: ignore
+		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HEADPATS, self.bot_data.current_avatar, duration, "default")) # type: ignore
 		return web.Response()
 
 	async def http_hug(self, request: web.Request) -> web.Response:
 		duration = self.get_interact_duration(True, self.bot_data.current_avatar, "")
-		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG, self.bot_data.avatar, duration, "default")) # type: ignore
+		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG, self.bot_data.current_avatar, duration, "default")) # type: ignore
 		return web.Response()
 
 ########################################################################################################################
