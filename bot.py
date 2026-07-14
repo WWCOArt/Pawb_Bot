@@ -13,7 +13,7 @@ import aiohttp.client_exceptions
 from aiohttp import web
 import sys
 
-VERSION_NUMBER = "0.3.62"
+VERSION_NUMBER = "0.3.63"
 
 DIANE_TEST_MODE = False
 
@@ -232,7 +232,7 @@ class Bot(commands.Bot):
 				if new_avatar[0] == "Evening Shift Employee":
 					new_avatar[0] = get_mainecoone_name("pawb_bot")
 
-				if not f"Avatar: {new_avatar[0]}" in self.bot_data.current_avatar_rotation:
+				if not new_avatar[0] in self.bot_data.current_avatar_rotation:
 					index = self.bot_data.avatar_rotation_ids.index(id_to_replace)
 					await user.update_custom_reward(self.bot_data.avatar_rotation_ids[index], title=f"Avatar: {new_avatar[0]}", cost=500)
 					self.bot_data.current_avatar_rotation[index] = f"Avatar: {new_avatar[0]}"
@@ -821,14 +821,14 @@ class CommandsChat(commands.Component):
 			await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS["Wish on a Star"]["veadotube_name"], 2.0, payload.user.display_name)) # type: ignore
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} wished on a star {wait_time / 60:.5g} minutes ago... {end_message}") # type: ignore
 			await user.update_custom_reward(self.bot.REDEEMS["Wish on a Star"]["id"], enabled=True)
-		elif payload.reward.title.replace("Avatar: ", "") in self.bot.AVATARS:
+		elif payload.reward.title in self.bot.AVATARS or "Avatar: " in payload.reward.title:
 			if payload.reward.title == "Peer Pressure":
 				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0, payload.user.display_name)) # type: ignore
 			else:
-				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS[payload.reward.title.replace("Avatar: ", "")]["veadotube_name"], 2.0, payload.user.display_name)) # type: ignore
 				if payload.reward.title.startswith("Avatar: "):
 					await self.bot.setup_avatar_rotation(payload.reward.id)
-					#await send_message(user, sender=self.bot.user, message=self.bot.AVATARS[payload.reward.title.replace("Avatar: ", "")]["description"].replace("Random Avatar: ", "Avatar: ")) # type: ignore
+
+				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS.get(payload.reward.title.replace("Avatar: ", ""), self.bot.AVATARS["Evening Shift Employee"])["veadotube_name"], 2.0, payload.user.display_name)) # type: ignore
 		#if it's not in the avatar list, compare to other redeems
 		elif payload.reward.id == self.bot.REDEEMS["Random Avatar"]["id"]:
 			await self.queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0, payload.user.display_name)) # type: ignore
