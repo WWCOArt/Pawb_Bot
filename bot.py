@@ -145,7 +145,7 @@ class Bot(commands.Bot):
 		self.bot_data.current_queue_size = len(trello.get_trello_queue())
 
 		self.randomize_connection_offline.start()
-		#self.poll_trello_queue.start()
+		self.poll_trello_queue.start()
 		self.enable_planks.start()
 		self.change_avatar_rotation.start()
 
@@ -166,6 +166,7 @@ class Bot(commands.Bot):
 			web.post("/bestButton", self.http_bestbutton),
 			web.post("/headpats", self.http_headpats),
 			web.post("/hug", self.http_hug),
+			web.post("/queue_next", self.http_queue_next),
 		])
 
 		self.http_runner = web.AppRunner(self.http_server)
@@ -401,7 +402,7 @@ class Bot(commands.Bot):
 			print("""List of commands:
 	say [message] - Make pawb_bot say something in chat.
 	best_button - Press the best button.
-	next - Advance the dono queue. (DOES NOT CURRENTLY WORK)
+	next - Advance the dono queue.
 	brb - Switch to the BRB screen.
 	main - Return from the BRB screen.
 	avatar [avatar_name] - Switch to an avatar by its veadotube name. "avatar random" triggers random avatar.
@@ -442,17 +443,18 @@ class Bot(commands.Bot):
 				if len(new_queue) > self.bot_data.current_queue_size:
 					latest_donor = new_queue[-1]["name"].split("###")
 					if len(latest_donor) > 1:
-						if latest_donor[1].isdigit():
-							await send_message(user, sender=self.user, message=f"{latest_donor[0]}, you submitted a donation of less than $25, but you currently have a cooldown of {latest_donor[1]} days on getting an under $25 dono. You will be refunded.") # type: ignore
-						else:
+						if latest_donor[1] == "AD":
 							await send_message(user, sender=self.user, message=f"{latest_donor[0]}, you are already on the queue. You will be refunded.") # type: ignore
+						elif latest_donor[1] == "NE":
+							await send_message(user, sender=self.user, message=f"{latest_donor[0]}, you submitted a donation of less than the minimum of $25. You will be refunded.") # type: ignore
 					else:
 						await user.send_announcement(moderator=self.user, message=f"{latest_donor[0]} has been added to the queue.", color="orange") # type: ignore
+
+				self.bot_data.current_queue_size = len(new_queue)
 
 				current_stream_title = (await user.fetch_channel_info()).title
 				if "queue size" in current_stream_title:
 					await user.modify_channel(title=re.sub(r"\[\d+\]", f"[{len(new_queue)}]", current_stream_title))
-					self.bot_data.current_queue_size = len(new_queue)
 		except RuntimeError:
 			pass
 		except aiohttp.client_exceptions.ServerDisconnectedError:
@@ -515,6 +517,10 @@ class Bot(commands.Bot):
 	async def http_hug(self, request: web.Request) -> web.Response:
 		duration = self.get_interact_duration(True, self.bot_data.current_avatar, "")
 		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.HUG, self.bot_data.current_avatar, duration, "default")) # type: ignore
+		return web.Response()
+
+	async def http_queue_next(self, request: web.Request) -> web.Response:
+		await self.process_input("next")
 		return web.Response()
 
 ########################################################################################################################
