@@ -1,4 +1,5 @@
 __pycache__/
+.vscode/
 .tio.tokens.json
 
 bot_data.db
