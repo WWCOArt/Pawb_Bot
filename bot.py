@@ -359,7 +359,7 @@ class Bot(commands.Bot):
 			if "queue size" in current_stream_title:
 				await user.modify_channel(title=re.sub(r"\[\d+\]", f"[{self.bot_data.current_queue_size}]", current_stream_title))
 
-			await user.send_whisper(to_user=next_person.lower(), message=f"Sierra is starting on your dono, {next_person}")
+			#await user.send_whisper(to_user=next_person.lower(), message=f"Sierra is starting on your dono, {next_person}")
 		elif command == "brb":
 			await self.go_to_brb()
 		elif command == "main":
