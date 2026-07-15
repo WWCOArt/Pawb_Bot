@@ -351,7 +351,7 @@ class Bot(commands.Bot):
 			next_next_person = queue[1]["name"] if len(queue) > 1 else "None"
 			requests.post(f"{self.CLOUD_WEBHOOK_URL}?advance_queue")
 			await user.send_announcement(moderator=self.user, message=f"{next_person} is up!") # type: ignore
-			self.obs_websocket.set_input_settings("Now Drawing", {"text": f"Drawing: {next_person}. Next: {next_next_person}"}, False)
+			self.obs_websocket.set_input_settings("Now Drawing", {"text": f"Drawing: {next_person}. Next: {next_next_person}"}, True)
 
 			self.bot_data.current_queue_size -= 1
 
