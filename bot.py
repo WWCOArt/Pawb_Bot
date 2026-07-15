@@ -13,7 +13,7 @@ import aiohttp.client_exceptions
 from aiohttp import web
 import sys
 
-VERSION_NUMBER = "0.3.63"
+VERSION_NUMBER = "0.3.7"
 
 DIANE_TEST_MODE = False
 
@@ -349,7 +349,9 @@ class Bot(commands.Bot):
 			requests.post(f"{self.CLOUD_WEBHOOK_URL}?advance_queue")
 			queue = trello.get_trello_queue()
 			next_person = queue[0]["name"]
+			next_next_person = queue[1]["name"] if len(queue) > 1 else "None"
 			await user.send_announcement(moderator=self.user, message=f"{next_person} is up!") # type: ignore
+			self.obs_websocket.set_input_settings("Now Drawing", {"text": f"Drawing: {next_person}. Next: {next_next_person}"}, False)
 			await user.send_whisper(to_user=next_person.lower(), message=f"Sierra is starting on your dono, {next_person}")
 		elif command == "brb":
 			await self.go_to_brb()
