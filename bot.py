@@ -369,7 +369,9 @@ class Bot(commands.Bot):
 			await self.update_title_queue()
 			self.poll_trello_queue.start()
 
-			#await user.send_whisper(to_user=next_person.lower(), message=f"Sierra is starting on your dono, {next_person}")
+			bot_user = self.create_partialuser(user_id=self.BOT_ID)
+			next_user_data = await self.fetch_user(login=next_person.lower())
+			await bot_user.send_whisper(to_user=next_user_data.id, message=f"Sierra is starting on your dono, {next_person}") # type: ignore
 		elif command == "brb":
 			await self.go_to_brb()
 		elif command == "main":
