@@ -840,7 +840,7 @@ class CommandsChat(commands.Component):
 			if payload.reward.title == "Peer Pressure":
 				await self.queue_action(AvatarAction(ActionType.PEER_PRESSURE, "", 5.0, payload.user.display_name)) # type: ignore
 			else:
-				if payload.reward.title.startswith("Avatar: "):
+				if "Avatar: " in payload.reward.title:
 					await self.bot.setup_avatar_rotation(payload.reward.id)
 
 				await self.queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot.AVATARS.get(payload.reward.title.replace("Avatar: ", ""), self.bot.AVATARS["Evening Shift Employee"])["veadotube_name"], 2.0, payload.user.display_name)) # type: ignore
