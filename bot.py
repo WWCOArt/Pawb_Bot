@@ -328,6 +328,17 @@ class Bot(commands.Bot):
 		await asyncio.sleep(2.4)
 		self.obs_websocket.set_studio_mode_enabled(False)
 
+	def update_onscreen_queue(self, current: str, nex: str):
+		if not DIANE_TEST_MODE:
+			self.obs_websocket.set_input_settings("Now Drawing", {"text": f"Drawing: {current}. Next: {nex}"}, True)
+
+	async def update_title_queue(self):
+		user = self.create_partialuser(user_id=self.OWNER_ID)
+		if not DIANE_TEST_MODE:
+			current_stream_title = (await user.fetch_channel_info()).title
+			if "queue size" in current_stream_title:
+				await user.modify_channel(title=re.sub(r"\[\d+\]", f"[{self.bot_data.current_queue_size}]", current_stream_title))
+
 ########################################################################################################################
 # Streamer console commands
 ########################################################################################################################
@@ -346,18 +357,17 @@ class Bot(commands.Bot):
 			if not self.bot_data.best_button_broken:
 				await self.push_best_button()
 		elif command == "next":
+			self.poll_trello_queue.cancel()
 			queue = trello.get_trello_queue()
 			next_person = queue[0]["name"] if len(queue) > 0 else "None"
 			next_next_person = queue[1]["name"] if len(queue) > 1 else "None"
 			requests.post(f"{self.CLOUD_WEBHOOK_URL}?advance_queue")
 			await user.send_announcement(moderator=self.user, message=f"{next_person} is up!") # type: ignore
-			self.obs_websocket.set_input_settings("Now Drawing", {"text": f"Drawing: {next_person}. Next: {next_next_person}"}, True)
+			self.update_onscreen_queue(next_person, next_next_person)
 
 			self.bot_data.current_queue_size -= 1
-
-			current_stream_title = (await user.fetch_channel_info()).title
-			if "queue size" in current_stream_title:
-				await user.modify_channel(title=re.sub(r"\[\d+\]", f"[{self.bot_data.current_queue_size}]", current_stream_title))
+			await self.update_title_queue()
+			self.poll_trello_queue.start()
 
 			#await user.send_whisper(to_user=next_person.lower(), message=f"Sierra is starting on your dono, {next_person}")
 		elif command == "brb":
@@ -460,10 +470,7 @@ class Bot(commands.Bot):
 						await user.send_announcement(moderator=self.user, message=f"{latest_donor[0]} has been added to the queue.", color="orange") # type: ignore
 
 				self.bot_data.current_queue_size = len(new_queue)
-
-				current_stream_title = (await user.fetch_channel_info()).title
-				if "queue size" in current_stream_title:
-					await user.modify_channel(title=re.sub(r"\[\d+\]", f"[{len(new_queue)}]", current_stream_title))
+				await self.update_title_queue()
 		except RuntimeError:
 			pass
 		except aiohttp.client_exceptions.ServerDisconnectedError:
