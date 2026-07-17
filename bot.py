@@ -188,14 +188,14 @@ class Bot(commands.Bot):
 
 	def set_current_avatar(self, bot_data: BotData, av: str):
 		bot_data.current_avatar = av
-		if not DIANE_TEST_MODE:
-			try:
-				requests.post("http://localhost:9450/webhook", None, {
-					"trigger": "avatarWebhook",
-					"avatar": av,
-				})
-			except:
-				LOGGER.error(f"Failed to POST avatar request to SAMMI: {sys.exc_info()}")
+		# if not DIANE_TEST_MODE:
+		# 	try:
+		# 		requests.post("http://localhost:9450/webhook", None, {
+		# 			"trigger": "avatarWebhook",
+		# 			"avatar": av,
+		# 		})
+		# 	except:
+		# 		LOGGER.error(f"Failed to POST avatar request to SAMMI: {sys.exc_info()}")
 
 		if not DIANE_TEST_MODE:
 			subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
