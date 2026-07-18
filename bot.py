@@ -332,12 +332,11 @@ class Bot(commands.Bot):
 		if not DIANE_TEST_MODE:
 			self.obs_websocket.set_input_settings("Now Drawing", {"text": f"Drawing: {current}. Next: {nex}"}, True)
 
-	async def update_title_queue(self):
+	async def update_title_queue(self, dono_title: str):
 		user = self.create_partialuser(user_id=self.OWNER_ID)
 		if not DIANE_TEST_MODE:
-			current_stream_title = (await user.fetch_channel_info()).title
-			if "queue size" in current_stream_title:
-				await user.modify_channel(title=re.sub(r"\[\d+\]", f"[{self.bot_data.current_queue_size}]", current_stream_title))
+			full_title = f"{dono_title} Current queue size: [{self.bot_data.current_queue_size}]. [!dono !queue] | Voi/Void, She/They |"
+			await user.modify_channel(title=full_title)
 
 ########################################################################################################################
 # Streamer console commands
@@ -356,6 +355,13 @@ class Bot(commands.Bot):
 		elif command == "best" or command == "best_button":
 			if not self.bot_data.best_button_broken:
 				await self.push_best_button()
+		elif command == "dono":
+			if len(input_split) > 1:
+				title = " ".join(input_split[1:]).lstrip('"').rstrip('"')
+				self.bot_data.set_dono_title(title)
+				await self.update_title_queue(title)
+			else:
+				print('Missing parameters for command "dono"')
 		elif command == "next":
 			self.poll_trello_queue.cancel()
 			queue = trello.get_trello_queue()
@@ -366,12 +372,18 @@ class Bot(commands.Bot):
 			self.update_onscreen_queue(next_person, next_next_person)
 
 			self.bot_data.current_queue_size -= 1
-			await self.update_title_queue()
+			await self.update_title_queue(self.bot_data.get_dono_title())
 			self.poll_trello_queue.start()
 
 			bot_user = self.create_partialuser(user_id=self.BOT_ID)
 			next_user_data = await self.fetch_user(login=next_person.lower())
-			await bot_user.send_whisper(to_user=next_user_data.id, message=f"Sierra is starting on your dono, {next_person}") # type: ignore
+			try:
+				await bot_user.send_whisper(to_user=next_user_data.id, message=f"Sierra is starting on your dono, {next_person}.") # type: ignore
+			except twitchio.exceptions.HTTPException as e:
+				if "settings prevent" in e.extra["message"]:
+					LOGGER.info(f"{next_person} won't be whispered because they don't follow the bot")
+				else:
+					LOGGER.error(f"Error whispering {next_person}: {e.extra["message"]}")
 		elif command == "brb":
 			await self.go_to_brb()
 		elif command == "main":
@@ -423,6 +435,7 @@ class Bot(commands.Bot):
 			print("""List of commands:
 	say [message] - Make pawb_bot say something in chat.
 	best_button - Press the best button.
+	dono - Set dono title.
 	next - Advance the dono queue.
 	brb - Switch to the BRB screen.
 	main - Return from the BRB screen.
@@ -472,7 +485,7 @@ class Bot(commands.Bot):
 						await user.send_announcement(moderator=self.user, message=f"{latest_donor[0]} has been added to the queue.", color="orange") # type: ignore
 
 				self.bot_data.current_queue_size = len(new_queue)
-				await self.update_title_queue()
+				await self.update_title_queue(self.bot_data.get_dono_title())
 		except RuntimeError:
 			pass
 		except aiohttp.client_exceptions.ServerDisconnectedError:
@@ -699,6 +712,7 @@ class CommandsChat(commands.Component):
 	@commands.Component.listener()
 	async def event_stream_offline(self, payload: twitchio.StreamOffline):
 		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
+		self.bot_data.set_dono_title("placeholder")
 		await send_message(user, sender=self.bot.user, message="PawbOS shutting down.") # type: ignore
 		if len(self.bot_data.stream_markers) > 0:
 			all_markers = "\n".join([f"{marker[1]:02}:{marker[2]:02}:{marker[3]:02}: {marker[0]}" for marker in self.bot_data.stream_markers])
@@ -983,6 +997,7 @@ class CommandsChat(commands.Component):
 			greetings = self.bot.GREETINGS.get(context.author.name, "")
 			if isinstance(greetings, dict) and split[1] in greetings:
 				self.bot_data.set_current_chatter_form(context.author.name, split[1]) # type: ignore
+				await send_message_context(context, f"Switched to form: {split[1]}", True)
 
 	@commands.command(aliases=["so"])
 	async def shoutout(self, context: commands.Context):

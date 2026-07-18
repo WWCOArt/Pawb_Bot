@@ -116,6 +116,20 @@ class BotData():
 		self.database_cursor.execute("UPDATE variables SET value = ? WHERE name = 'last_start_time'", (datetime.datetime.now().isoformat(),))
 		self.database.commit()
 
+	def get_dono_title(self) -> str:
+		self.database_cursor.execute("SELECT value FROM variables WHERE name = 'dono_title'")
+		return self.database_cursor.fetchone()[0]
+
+	def set_dono_title(self, title: str):
+		self.database_cursor.execute("SELECT COUNT(*) FROM variables WHERE name = 'dono_title'")
+		count = self.database_cursor.fetchone()[0]
+		if count > 0:
+			self.database_cursor.execute("UPDATE variables SET value = ? WHERE name = 'dono_title'", (title,))
+		else:
+			self.database_cursor.execute("INSERT INTO variables VALUES ('dono_title', ?)", (title,))
+
+		self.database.commit()
+
 	def replace_vars_in_string(self, string: str) -> str:
 		result = string
 		matches = self.vars_regex.findall(string)
