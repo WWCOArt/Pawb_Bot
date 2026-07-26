@@ -202,8 +202,8 @@ class Bot(commands.Bot):
 
 	def randomize_enfield_size(self):
 		size = random.randint(1, 4)
-		#if not DIANE_TEST_MODE:
-		#	subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents enfieldSize set "{size}"')
+		if not DIANE_TEST_MODE:
+			subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents enfieldSize set "{size}"')
 
 	async def setup_avatar_rotation(self, id_to_replace: str = ""):
 		user = self.create_partialuser(user_id=self.OWNER_ID)
@@ -397,7 +397,7 @@ class Bot(commands.Bot):
 			else:
 				print(f"Current avatar: {self.bot_data.current_avatar}")
 		elif command == "veado" or command == "veadotube":
-			if len(input_split) == 2:
+			if len(input_split) == 3:
 				subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents {input_split[1]} set "{input_split[2]}"')
 			else:
 				print('Missing parameters for command "veado"')
