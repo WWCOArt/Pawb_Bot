@@ -35,6 +35,9 @@ class BotData():
 
 		self.vars_regex = re.compile(r"\$\{(.+?)\}")
 
+		self.vgen_email_count = 0
+		self.vgen_email_handle = None
+
 	def get_action_queue_string(self) -> str:
 		return str(self.action_queue)
 	

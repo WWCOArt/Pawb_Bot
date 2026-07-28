@@ -12,6 +12,7 @@ import obsws_python
 import aiohttp.client_exceptions
 from aiohttp import web
 import sys
+import imaplib
 
 VERSION_NUMBER = "0.3.7"
 
@@ -141,9 +142,20 @@ class Bot(commands.Bot):
 
 		self.bot_data.update_last_start_time()
 
+		# undo count
 		keyboard.add_hotkey("ctrl+z", increment_undo, args=[self, asyncio.get_event_loop()]) # type: ignore
 		self.bot_data.current_queue_size = len(trello.get_trello_queue())
 
+		# set up email polling
+		mail = imaplib.IMAP4_SSL("imap.gmail.com")
+		result = mail.login(self.VGEN_EMAIL_ADDRESS, self.VGEN_EMAIL_PASSWORD)
+		if result[0] == "OK":
+			self.bot_data.vgen_email_handle = mail #type: ignore
+			self.poll_vgen_email.start()
+		else:
+			LOGGER.error(f"Error logging into the VGen email: {result[1]}")
+
+		# start all timed routines
 		self.randomize_connection_offline.start()
 		self.poll_trello_queue.start()
 		self.enable_planks.start()
@@ -181,7 +193,8 @@ class Bot(commands.Bot):
 				inp = await session.prompt_async("> ")
 				await self.process_input(inp)
 
-	async def shut_down(self):
+	def shut_down(self):
+		self.bot_data.vgen_email_handle.logout() # type: ignore
 		self.bot_data.database.close()
 		if not DIANE_TEST_MODE:
 			self.obs_websocket.disconnect()
@@ -265,6 +278,8 @@ class Bot(commands.Bot):
 		self.OWNER_ID = bot_secrets_json["owner_id"]
 		self.CLOUD_WEBHOOK_URL = bot_secrets_json["cloud_webhook_url"]
 		self.OBS_WEBSOCKET_PASSWORD = bot_secrets_json["obs_websocket_password"]
+		self.VGEN_EMAIL_ADDRESS = bot_secrets_json["email_address"]
+		self.VGEN_EMAIL_PASSWORD = bot_secrets_json["email_password"]
 		bot_secrets.close()
 
 		with open("config.json", encoding="utf8") as config_data:
@@ -507,6 +522,25 @@ class Bot(commands.Bot):
 	async def change_avatar_rotation(self):
 		try:
 			await self.setup_avatar_rotation()
+		except RuntimeError:
+			pass
+		except aiohttp.client_exceptions.ServerDisconnectedError:
+			pass
+
+	@routines.routine(delta=datetime.timedelta(seconds=10), wait_first=True)
+	async def poll_vgen_email(self):
+		try:
+			self.bot_data.vgen_email_handle.select("inbox", True) # type: ignore
+			result, data = self.bot_data.vgen_email_handle.search(None, 'FROM "VGen Commission" HEADER Subject "New commission request!"') # type: ignore
+			if result == "OK":
+				new_count = len(data[0].split())
+				if new_count > self.bot_data.vgen_email_count and self.bot_data.vgen_email_count > 0:
+					user = self.create_partialuser(user_id=self.OWNER_ID)
+					await user.send_announcement(moderator=self.user, message="A new VGen request has been submitted!", color="green") # type: ignore
+
+				self.bot_data.vgen_email_count = new_count
+			else:
+				LOGGER.error(f"Error retrieving VGen emails: {result}")
 		except RuntimeError:
 			pass
 		except aiohttp.client_exceptions.ServerDisconnectedError:

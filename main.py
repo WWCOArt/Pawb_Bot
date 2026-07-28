@@ -16,14 +16,16 @@ def main() -> None:
 	async def runner() -> None:
 		async with b as bot:
 			await bot.start()
-			await bot.shut_down()
+			bot.shut_down()
 
 	try:
 		asyncio.run(runner())
 	except KeyboardInterrupt:
 		bot.LOGGER.warning("Shutting down due to Keyboard Interrupt...")
+		b.shut_down()
 	except aiohttp.client_exceptions.ServerDisconnectedError:
 		bot.LOGGER.warning("Shutting down due to Keyboard Interrupt...")
+		b.shut_down()
 
 if __name__ == "__main__":
 	main()
