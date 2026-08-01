@@ -382,8 +382,8 @@ class Bot(commands.Bot):
 			queue = trello.get_trello_queue()
 			next_person = queue[0]["name"] if len(queue) > 0 else "None"
 			next_next_person = queue[1]["name"] if len(queue) > 1 else "None"
-			requests.post(f"{self.CLOUD_WEBHOOK_URL}?advance_queue")
 			await user.send_announcement(moderator=self.user, message=f"{next_person} is up!") # type: ignore
+			requests.post(f"{self.CLOUD_WEBHOOK_URL}?advance_queue")
 			self.update_onscreen_queue(next_person, next_next_person)
 
 			self.bot_data.current_queue_size -= 1
