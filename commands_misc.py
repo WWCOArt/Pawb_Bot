@@ -79,9 +79,9 @@ class CommandsMisc(commands.Component):
 	@commands.command(aliases=["headpat", "pat", "pats"])
 	async def headpats(self, context: commands.Context):
 		if context.author.name == "ikikoroboros":
-			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents tempInteract set "{IkiGremlin}"')
+			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents tempInteract set "IkiGremlin"')
 			await asyncio.sleep(2)
-			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents tempInteract set "{(off)}"')
+			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents tempInteract set "(off)"')
 
 	@commands.command()
 	async def socials(self, context: commands.Context):
