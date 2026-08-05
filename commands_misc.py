@@ -3,13 +3,13 @@ import asyncio
 import subprocess
 from twitchio.ext import commands
 
-from bot import Bot
+import bot
 from bot_data import BotData
 from utility_functions import send_message_context
 
 class CommandsMisc(commands.Component):
-	def __init__(self, bot: Bot,bot_data: BotData):
-		self.bot = bot
+	def __init__(self, main_bot, bot_data: BotData):
+		self.bot = main_bot
 		self.bot_data = bot_data
 
 	@commands.command()

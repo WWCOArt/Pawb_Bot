@@ -12,7 +12,7 @@ class CommandsDonos(commands.Component):
 
 	@commands.command(aliases=["dono", "donos"])
 	async def kofi(self, context: commands.Context):
-		await send_message_context(context, "https://ko-fi.com/whenwolvescryout/commissions")
+		await send_message_context(context, "Kofi: https://ko-fi.com/whenwolvescryout/commissions, Vgen: https://vgen.co/WhenWolvesCryOut")
 
 	@commands.command()
 	async def queue(self, context: commands.Context):
