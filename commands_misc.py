@@ -1,12 +1,15 @@
 import random
 import asyncio
+import subprocess
 from twitchio.ext import commands
 
+from bot import Bot
 from bot_data import BotData
 from utility_functions import send_message_context
 
 class CommandsMisc(commands.Component):
-	def __init__(self, bot_data: BotData):
+	def __init__(self, bot: Bot,bot_data: BotData):
+		self.bot = bot
 		self.bot_data = bot_data
 
 	@commands.command()
@@ -72,6 +75,17 @@ class CommandsMisc(commands.Component):
 	@commands.command(aliases=["games", "distractions"])
 	async def powerword(self, context: commands.Context):
 		await send_message_context(context, "Available options for Power Word Distract: Tetris Effect, Not Tetris 2, Sand Tetris, Broomsweeper, Raccoin, Suborbital Salvage, Pinball, Wireworks, Distance, Stackflow, Peglin, Race the Sun, Super Hexagon, Gambonanza, Shotgun King.")
+
+	@commands.command(aliases=["headpat", "pat", "pats"])
+	async def headpats(self, context: commands.Context):
+		if context.author.name == "ikikoroboros":
+			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents tempInteract set "{IkiGremlin}"')
+			await asyncio.sleep(2)
+			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents tempInteract set "{(off)}"')
+
+	@commands.command()
+	async def socials(self, context: commands.Context):
+			await send_message_context(context, "You can find links to my my galleries and social media here: https://whenwolvescryout.carrd.co")
 
 	# @commands.command()
 	# async def tirgatail(self, context: commands.Context):

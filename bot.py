@@ -14,7 +14,7 @@ from aiohttp import web
 import sys
 import imaplib
 
-VERSION_NUMBER = "0.3.7"
+VERSION_NUMBER = "0.3.8"
 
 DIANE_TEST_MODE = False
 
@@ -96,7 +96,7 @@ class Bot(commands.Bot):
 		await self.add_component(CommandsRules(self.bot_data))
 		await self.add_component(CommandsChat(self, self.bot_data))
 		await self.add_component(CommandsDonos(self.bot_data))
-		await self.add_component(CommandsMisc(self.bot_data))
+		await self.add_component(CommandsMisc(self, self.bot_data))
 		await self.add_component(CommandsCharacters(self.bot_data))
 
 		user = self.create_partialuser(user_id=self.OWNER_ID)
@@ -941,11 +941,18 @@ class CommandsChat(commands.Component):
 			for redeem in self.bot.REDEEMS.values():
 				if redeem["silly"]:
 					await user.update_custom_reward(redeem["id"], cost=random.randrange(2, 999) if self.bot_data.silly_mode else redeem["base_price"])
+
+		# Nothing Button
 		elif payload.reward.id == self.bot.REDEEMS["This Redeem does nothing"]["id"]:
 			nothing_cost = self.bot_data.get_variable("nothing_cost")
 			if nothing_cost != None:
-				self.bot_data.store_variable("nothing_cost", nothing_cost + 1)
+				nothing_cost = (nothing_cost + 1)
+				nothing_string = str(nothing_cost)
+				nothing_string = nothing_string.replace("4", "5") #replacing any 4s with 5s because reynard stole all the fours. 
+				nothing_cost = int(nothing_string)
+				self.bot_data.store_variable("nothing_cost", nothing_cost )
 				await user.update_custom_reward(self.bot.REDEEMS["This Redeem does nothing"]["id"], cost=nothing_cost, prompt=f"But each time it's redeemed, the cost becomes one higher. How high will it go? Last redeemed by {payload.user.display_name}.")
+
 		elif payload.reward.id == self.bot.REDEEMS["Create a Fox Rule!"]["id"]:
 			self.bot_data.add_foxrule(payload.user.display_name, payload.user_input) # type: ignore
 			await send_message(user, sender=self.bot.user, message="Fox Rules have been updated!") # type: ignore
