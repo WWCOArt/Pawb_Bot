@@ -306,7 +306,7 @@ class Bot(commands.Bot):
 			self.GREETINGS = json.load(greetings_file)
 
 	async def push_best_button(self):
-		await user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary", color="purple") # type: ignore
+		await self.user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary", color="purple") # type: ignore
 
 ########################################################################################################################
 # OBS
