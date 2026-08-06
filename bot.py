@@ -306,7 +306,8 @@ class Bot(commands.Bot):
 			self.GREETINGS = json.load(greetings_file)
 
 	async def push_best_button(self):
-		await self.user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary", color="purple") # type: ignore
+		user = self.create_partialuser(user_id=self.OWNER_ID)
+		await user.send_announcement(moderator=self.user, message="Go check out the heckin' good bean that is Runary! They stream at https://twitch.tv/Runary, and you can buy their art at https://ko-fi.com/Runary", color="purple") # type: ignore
 
 ########################################################################################################################
 # OBS
@@ -1048,7 +1049,10 @@ class CommandsChat(commands.Component):
 			shouted_name = context.message.text.split()[1] # type: ignore
 			shouted_user = await self.bot.fetch_user(login=shouted_name)
 			if shouted_user != None:
-				await user.send_shoutout(to_broadcaster=shouted_user.id, moderator=self.bot.user) # type: ignore
+				try:
+					await user.send_shoutout(to_broadcaster=shouted_user.id, moderator=self.bot.user) # type: ignore
+				except twitchio.exceptions.HTTPException:
+					LOGGER.warning(f"Shoutout failed due to cooldown")
 
 				their_channel = (await self.bot.fetch_channel(shouted_user.id)) # type: ignore
 				their_username = shouted_user.name # type: ignore
