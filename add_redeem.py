@@ -22,7 +22,7 @@ LOGGER: logging.Logger = logging.getLogger("Bot")
 # AVATAR REDEEM 5: 171fc124-04dd-40d8-816a-4db8130ea25c
 
 ####### EDIT THESE
-redeem_name = "AVATAR REDEEM 5"
+redeem_name = "SkrunkleTubers"
 redeem_color = "#bda8ff"
 redeem_description = None
 redeem_cost = 100
