@@ -80,7 +80,9 @@ class CommandsMisc(commands.Component):
 	async def headpats(self, context: commands.Context):
 		if context.author.name == "ikikoroboros":
 			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents tempInteract set "IkiGremlin"')
+			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents hideGuests set "on"')
 			await asyncio.sleep(2)
+			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents hideGuests set "(off)"')
 			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents tempInteract set "(off)"')
 
 	@commands.command()
