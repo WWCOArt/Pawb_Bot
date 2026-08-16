@@ -2,6 +2,7 @@ import datetime
 import random
 import requests
 import json
+import math
 from astral import moon
 from num2words import num2words
 from CnyZodiac import ChineseNewYearZodiac as cnyz
@@ -213,3 +214,32 @@ async def send_message_context(context: commands.Context, message: str, reply: b
 		await context.reply(message)
 	else:
 		await context.send(message)
+
+def convert_units(number: float, unit: str) -> str:
+	if unit == "c" or unit == "celsius" or unit == "centigrade":
+		return f"{number * 1.8 + 32:.03g} °F"
+	elif unit == "f" or unit == "fahrenheit":
+		return f"{(number - 32) / 1.8:.03g} °C"
+	elif unit == "g" or unit == "gram" or unit == "grams":
+		return f"{number / 453.59237:.03g} lbs"
+	elif unit == "lb" or unit == "lbs" or unit == "pounds":
+		return f"{number * 453.59237:.03g} g"
+	elif unit == "m" or unit == "meter" or unit == "meters":
+		result = number * 3.280839895
+		return f"{result:.03g} ft ({math.trunc(result)} ft {math.trunc(result % 1 * 12)} in)"
+	elif unit == "ft" or unit == "foot" or unit == "feet":
+		return f"{number / 3.280839895:.03g} m"
+	elif unit == "km" or unit == "kilometer" or unit == "kilometers" or unit == "kph" or unit == "km/h":
+		return f"{number / 1.609344:.03g} mi"
+	elif unit == "mi" or unit == "mile" or unit == "miles" or unit == "mph" or unit == "mi/h":
+		return f"{number * 1.609344:.03g} km"
+	elif unit == "cm" or unit == "centimeter" or unit == "centimeters":
+		return f"{number / 2.54:.03g} in"
+	elif unit == "in" or unit == "inch" or unit == "inches":
+		return f"{number * 2.54:.03g} cm"
+	elif unit == "l" or unit == "liter" or unit == "litre" or unit == "liters" or unit == "litres":
+		return f"{number / 3.785411784:.03g} gal"
+	elif unit == "gal" or unit == "gallon" or unit == "gallons":
+		return f"{number * 3.785411784:.03g} L"
+	else:
+		return ""

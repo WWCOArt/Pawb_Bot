@@ -1,16 +1,19 @@
 import random
 import asyncio
 import subprocess
+import re
 from twitchio.ext import commands
 
 import bot
 from bot_data import BotData
-from utility_functions import send_message_context
+from utility_functions import send_message_context, convert_units
 
 class CommandsMisc(commands.Component):
 	def __init__(self, main_bot, bot_data: BotData):
 		self.bot = main_bot
 		self.bot_data = bot_data
+
+		self.units_regex = re.compile(r"^([\d\.]+)\s*(.+)$")
 
 	@commands.command()
 	async def lurk(self, context: commands.Context):
@@ -87,23 +90,13 @@ class CommandsMisc(commands.Component):
 
 	@commands.command()
 	async def socials(self, context: commands.Context):
-			await send_message_context(context, "You can find links to my my galleries and social media here: https://whenwolvescryout.carrd.co")
+		await send_message_context(context, "You can find links to my my galleries and social media here: https://whenwolvescryout.carrd.co")
 
-	# @commands.command()
-	# async def tirgatail(self, context: commands.Context):
-	# 	self.bot_data.database_cursor.execute("SELECT length FROM tirga_tail_lengths WHERE username = ?", (context.author.name)) # type: ignore
-	# 	your_length = self.bot_data.database_cursor.fetchone()
-	# 	your_length = 10 if your_length == None else your_length[0]
-
-	# 	self.bot_data.database_cursor.execute("SELECT length FROM tirga_tail_lengths WHERE username = 'tirgathemadcat'")
-	# 	tirgas_length = self.bot_data.database_cursor.fetchone()[0]
-
-	# 	is_steal = random.binomialvariate(p=0.5)
-	# 	length_change = max(random.randrange(-20, 20) * your_length / 100, 10) * (-1 if is_steal else 1)
-	# 	new_tirgas_length = tirgas_length + length_change
-	# 	new_your_length = your_length - length_change
-
-	# 	self.bot_data.database_cursor.execute("UPDATE tirga_tail_lengths SET length = ? WHERE username = ?", (new_your_length, context.author.name))
-	# 	self.bot_data.database_cursor.execute("UPDATE tirga_tail_lengths SET length = ? WHERE username = 'tirgathemadcat'", (new_tirgas_length))
-
-	# 	await send_message_context(context, f"{context.author.display_name} has {'stolen' if is_steal else 'gifted'} {abs(length_change)} cm {'from' if is_steal else 'to'} TirgaTheMadCat's tail! And her tail is now {new_tirgas_length} cm long!")
+	@commands.command(aliases=["unit", "units"])
+	async def convert(self, context: commands.Context):
+		args = " ".join(context.content.split()[1:])
+		mat = self.units_regex.match(args)
+		if mat != None:
+			result = convert_units(float(mat.group(1)), mat.group(2))
+			if result != "":
+				await send_message_context(context, result, True)

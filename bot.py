@@ -5,7 +5,6 @@ import subprocess
 import datetime
 import keyboard
 import asyncio
-import re
 import requests
 import easygui
 import obsws_python
