@@ -100,3 +100,7 @@ class CommandsMisc(commands.Component):
 			result = convert_units(float(mat.group(1)), mat.group(2))
 			if result != "":
 				await send_message_context(context, result, True)
+
+	@commands.command(["beastieballteam","teamvote","jersey","teampoll"])
+	async def teamname(self, context: commands.Context):
+		await send_message_context(context, "https://forms.gle/zSD3B5ix4G2u1vrP8")

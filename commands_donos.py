@@ -24,6 +24,10 @@ class CommandsDonos(commands.Component):
 	async def skrunkletuber(self, context: commands.Context):
 		await send_message_context(context, "https://vgen.co/WhenWolvesCryOut/service/timed-avatar-thingy/3546dd80-f00e-43e1-9c12-406f41a70b53")
 
+	@commands.command(aliases=["wildcard"])
+	async def wildcards(self, context: commands.Context):
+		await send_message_context(context, "https://vgen.co/WhenWolvesCryOut#Wild%20Cards")
+
 	# @commands.command(aliases=["cooldown"])
 	# async def donocheck(self, context: commands.Context):
 	# 	pass
