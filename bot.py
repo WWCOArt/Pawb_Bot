@@ -23,7 +23,7 @@ from twitchio.ext import commands, routines
 from prompt_toolkit import PromptSession
 from prompt_toolkit.patch_stdout import patch_stdout
 
-from utility_functions import send_message, CheckType, send_message_context, string_to_leetspeak, get_pronouns, PronounType, get_mainecoone_name
+from utility_functions import send_message, CheckType, send_message_context, string_to_leetspeak, get_pronouns, PronounType, get_mainecoone_name, is_on_linux
 
 import trello
 from bot_data import BotData
@@ -283,8 +283,9 @@ class Bot(commands.Bot):
 
 		with open("config.json", encoding="utf8") as config_data:
 			config_data_json = json.load(config_data)
-			self.VEADOTUBE_PATH = config_data_json["veadotube_path"]
-			self.CURRENT_SONG_PATH = config_data_json["current_song_path"]
+			on_linux = is_on_linux()
+			self.VEADOTUBE_PATH = config_data_json["veadotube_path_linux"] if on_linux else config_data_json["veadotube_path"]
+			self.CURRENT_SONG_PATH = config_data_json["current_song_path_linux"] if on_linux else config_data_json["current_song_path"]
 
 		with open("avatars.json", encoding="utf8") as avatars_file:
 			self.AVATARS = json.load(avatars_file)

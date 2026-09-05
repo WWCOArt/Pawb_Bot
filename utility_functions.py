@@ -3,6 +3,7 @@ import random
 import requests
 import json
 import math
+import platform
 from astral import moon
 from num2words import num2words
 from CnyZodiac import ChineseNewYearZodiac as cnyz
@@ -243,3 +244,6 @@ def convert_units(number: float, unit: str) -> str:
 		return f"{number * 3.785411784:.03g} L"
 	else:
 		return ""
+
+def is_on_linux() -> bool:
+	return platform.system() == "Linux"

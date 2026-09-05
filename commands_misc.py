@@ -101,6 +101,6 @@ class CommandsMisc(commands.Component):
 			if result != "":
 				await send_message_context(context, result, True)
 
-	@commands.command(aliases=["beastieballteam","teamvote","jersey","teampoll"])
+	@commands.command(aliases=["beastieballteam", "teamvote", "jersey", "teampoll"])
 	async def teamname(self, context: commands.Context):
 		await send_message_context(context, "https://forms.gle/zSD3B5ix4G2u1vrP8")
