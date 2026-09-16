@@ -13,7 +13,7 @@ from aiohttp import web
 import sys
 import imaplib
 
-VERSION_NUMBER = "0.3.8"
+VERSION_NUMBER = "0.3.9"
 
 DIANE_TEST_MODE = False
 

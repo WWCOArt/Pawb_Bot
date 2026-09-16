@@ -104,3 +104,7 @@ class CommandsMisc(commands.Component):
 	@commands.command(aliases=["beastieballteam", "teamvote", "jersey", "teampoll"])
 	async def teamname(self, context: commands.Context):
 		await send_message_context(context, "https://forms.gle/zSD3B5ix4G2u1vrP8")
+
+	@commands.command(aliases=["pronoun", "alejo"])
+	async def pronouns(self, context: commands.Context):
+		await send_message_context(context, "You can set your Twitch chat pronouns here: https://pr.alejo.io/")
