@@ -13,7 +13,7 @@ from aiohttp import web
 import sys
 import imaplib
 
-VERSION_NUMBER = "0.3.9"
+VERSION_NUMBER = "0.4.0"
 
 DIANE_TEST_MODE = False
 
@@ -975,26 +975,27 @@ class CommandsChat(commands.Component):
 	async def event_hype_train_progress(self, payload: twitchio.HypeTrainProgress):
 		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 
-		current_hype_level = self.bot_data.get_variable("current_hype_level")
-		if current_hype_level != None and payload.level > current_hype_level:
-			if payload.level == 1:
+		current_hype_level = self.bot_data.get_variable("current_hype_level") or 0
+		highest_hype_level = self.bot_data.get_variable("highest_hype_level") or 0
+		if payload.level > current_hype_level:
+			if payload.level >= 1 and highest_hype_level < 2:
 				await user.update_custom_reward(self.bot.REDEEMS["HypeDragon1"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
-			elif payload.level == 2:
+			if payload.level >= 2 and highest_hype_level < 2:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked for rest of stream.") # type: ignore
-			elif payload.level == 3:
+			if payload.level >= 3 and highest_hype_level < 4:
 				await user.update_custom_reward(self.bot.REDEEMS["HypeDragon3"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 unlocked.") # type: ignore
-			elif payload.level == 4:
+			if payload.level >= 4 and highest_hype_level < 4:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 3 unlocked for rest of stream.") # type: ignore
-			elif payload.level == 5:
+			if payload.level >= 5 and highest_hype_level < 6:
 				await user.update_custom_reward(self.bot.REDEEMS["HypeDragon5"]["id"], enabled=True)
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 unlocked.") # type: ignore
-			elif payload.level >= 6:
+			if payload.level >= 6 and highest_hype_level < 6:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 5 unlocked for rest of stream.") # type: ignore
 
-			self.bot_data.store_variable("current_hype_level", payload.level)
-			self.bot_data.store_variable("highest_hype_level", payload.level)
+		self.bot_data.store_variable("current_hype_level", payload.level)
+		self.bot_data.store_variable("highest_hype_level", max(payload.level, highest_hype_level))
 
 	@commands.Component.listener()
 	async def event_hype_train_end(self, payload: twitchio.HypeTrainEnd):
