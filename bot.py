@@ -245,7 +245,7 @@ class Bot(commands.Bot):
 				if new_avatar[0] == "Evening Shift Employee":
 					new_avatar[0] = get_mainecoone_name("pawb_bot")
 
-				if not new_avatar[0] in self.bot_data.current_avatar_rotation:
+				if not f"Avatar: {new_avatar[0]}" in self.bot_data.current_avatar_rotation:
 					index = self.bot_data.avatar_rotation_ids.index(id_to_replace)
 					await user.update_custom_reward(self.bot_data.avatar_rotation_ids[index], title=f"Avatar: {new_avatar[0]}", cost=500)
 					self.bot_data.current_avatar_rotation[index] = f"Avatar: {new_avatar[0]}"
