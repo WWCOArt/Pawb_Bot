@@ -972,15 +972,23 @@ class CommandsChat(commands.Component):
 ########################################################################################################################
 
 	@commands.Component.listener()
+	async def event_hype_train_begin(self, payload: twitchio.HypeTrainBegin):
+		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
+		highest_hype_level = self.bot_data.get_variable("highest_hype_level") or 0
+		if highest_hype_level < 2:
+			await user.update_custom_reward(self.bot.REDEEMS["HypeDragon1"]["id"], enabled=True)
+			await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
+
+	@commands.Component.listener()
 	async def event_hype_train_progress(self, payload: twitchio.HypeTrainProgress):
 		user = self.bot.create_partialuser(user_id=self.bot.OWNER_ID)
 
 		current_hype_level = self.bot_data.get_variable("current_hype_level") or 0
 		highest_hype_level = self.bot_data.get_variable("highest_hype_level") or 0
 		if payload.level > current_hype_level:
-			if payload.level >= 1 and highest_hype_level < 2:
-				await user.update_custom_reward(self.bot.REDEEMS["HypeDragon1"]["id"], enabled=True)
-				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
+			#if payload.level >= 1 and highest_hype_level < 2:
+			#	await user.update_custom_reward(self.bot.REDEEMS["HypeDragon1"]["id"], enabled=True)
+			#	await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked.") # type: ignore
 			if payload.level >= 2 and highest_hype_level < 2:
 				await send_message(user, sender=self.bot.user, message="Hype Dragon Level 1 unlocked for rest of stream.") # type: ignore
 			if payload.level >= 3 and highest_hype_level < 4:
