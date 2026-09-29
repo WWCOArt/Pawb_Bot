@@ -13,7 +13,7 @@ from aiohttp import web
 import sys
 import imaplib
 
-VERSION_NUMBER = "0.4.0"
+VERSION_NUMBER = "0.4.1"
 
 DIANE_TEST_MODE = False
 
@@ -237,7 +237,7 @@ class Bot(commands.Bot):
 				if this_avatar[0] == "Evening Shift Employee":
 					this_avatar[0] = get_mainecoone_name("pawb_bot")
 
-				await user.update_custom_reward(self.bot_data.avatar_rotation_ids[i], title=f"Avatar: {this_avatar[0]}", cost=500)
+				await user.update_custom_reward(self.bot_data.avatar_rotation_ids[i], title=f"Avatar: {this_avatar[0]}", cost=500, prompt=this_avatar[1]["description"])
 				self.bot_data.current_avatar_rotation.append(this_avatar[0])
 		else:
 			while len(random_avatars) > 0:
@@ -247,7 +247,7 @@ class Bot(commands.Bot):
 
 				if not f"Avatar: {new_avatar[0]}" in self.bot_data.current_avatar_rotation:
 					index = self.bot_data.avatar_rotation_ids.index(id_to_replace)
-					await user.update_custom_reward(self.bot_data.avatar_rotation_ids[index], title=f"Avatar: {new_avatar[0]}", cost=500)
+					await user.update_custom_reward(self.bot_data.avatar_rotation_ids[index], title=f"Avatar: {new_avatar[0]}", cost=500, prompt=new_avatar[1]["description"])
 					self.bot_data.current_avatar_rotation[index] = f"Avatar: {new_avatar[0]}"
 					break
 
@@ -668,7 +668,7 @@ class CommandsChat(commands.Component):
 					self.bot_data.queue_random_avatars(self.bot.AVATARS)
 
 			self.bot.set_current_avatar(self.bot_data, new_avatar["veadotube_name"])
-			await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(new_avatar["description"])) # type: ignore
+			await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(f"Random avatar: {new_avatar["description"]}")) # type: ignore
 			await self.update_redeem_availability(previous_avatar, new_avatar["veadotube_name"])
 		elif action.type == ActionType.HEADPATS or action.type == ActionType.HUG:
 			is_hug = action.type == ActionType.HUG
