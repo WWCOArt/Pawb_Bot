@@ -212,10 +212,18 @@ class Bot(commands.Bot):
 		if not DIANE_TEST_MODE:
 			subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents avatarSwap set "{av}"')
 
-	def randomize_enfield_size(self):
+	async def randomize_enfield_size(self):
 		size = random.randint(1, 4)
 		if not DIANE_TEST_MODE:
+			blink_id = self.obs_websocket.get_scene_item_id("Art Streams", "blink").scene_item_id # type: ignore
+			self.obs_websocket.set_scene_item_enabled("Art Streams", blink_id, True)
 			subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes stateEvents enfieldSize set "{size}"')
+			await asyncio.sleep(0.2)
+			self.obs_websocket.set_scene_item_enabled("Art Streams", blink_id, False)
+
+	def toggle_winter_mode(self):
+		if not DIANE_TEST_MODE:
+			subprocess.run(f'{self.VEADOTUBE_PATH} -i 0 nodes boolean saoWinterBool toggle')
 
 	async def setup_avatar_rotation(self, id_to_replace: str = ""):
 		user = self.create_partialuser(user_id=self.OWNER_ID)
@@ -326,7 +334,7 @@ class Bot(commands.Bot):
 		await user.start_commercial(length=180)
 
 	async def return_from_brb(self):
-		self.randomize_enfield_size()
+		await self.randomize_enfield_size()
 		self.obs_websocket.set_studio_mode_enabled(True)
 		await asyncio.sleep(0.6)
 		self.obs_websocket.set_current_program_scene("Art Streams")
@@ -910,7 +918,9 @@ class CommandsChat(commands.Component):
 			duration = self.bot.get_interact_duration(is_hug, self.bot_data.current_avatar, payload.user.name) # type: ignore
 			await self.queue_action(AvatarAction(ActionType.HUG if is_hug else ActionType.HEADPATS, self.bot_data.current_avatar, duration, payload.user.display_name)) # type: ignore
 		elif payload.reward.id == self.bot.REDEEMS["Blink"]["id"]:
-			self.bot.randomize_enfield_size()
+			await self.bot.randomize_enfield_size()
+		elif payload.reward.id == self.bot.REDEEMS["Winter Mode"]["id"]:
+			self.bot.toggle_winter_mode()
 		elif payload.reward.id == self.bot.REDEEMS["Peer Pressure"]["id"]:
 			check, check_type, target_person = self.find_check()
 			await send_message(user, sender=self.bot.user, message=f"{payload.user.display_name} found {target_person}'s {check}.") # type: ignore
