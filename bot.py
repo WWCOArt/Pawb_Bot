@@ -116,7 +116,7 @@ class Bot(commands.Bot):
 			self.bot_data.store_variable("highest_hype_level", 0)
 
 			await user.update_custom_reward(self.REDEEMS["First!"]["id"], title="First!", prompt="Show everyone you were the fastest.")
-			await user.update_custom_reward(self.REDEEMS["Planks!"]["id"], enabled=False)
+			# await user.update_custom_reward(self.REDEEMS["Planks!"]["id"], enabled=False)
 			await user.update_custom_reward(self.REDEEMS["HypeDragon1"]["id"], enabled=False)
 			await user.update_custom_reward(self.REDEEMS["HypeDragon3"]["id"], enabled=False)
 			await user.update_custom_reward(self.REDEEMS["HypeDragon5"]["id"], enabled=False)
@@ -157,7 +157,7 @@ class Bot(commands.Bot):
 		# start all timed routines
 		self.randomize_connection_offline.start()
 		self.poll_trello_queue.start()
-		self.enable_planks.start()
+		# self.enable_planks.start()
 		self.change_avatar_rotation.start()
 
 		if not DIANE_TEST_MODE:
