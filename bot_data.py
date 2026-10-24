@@ -31,6 +31,8 @@ class BotData():
 			"171fc124-04dd-40d8-816a-4db8130ea25c",
 		]
 
+		self.last_natural_avatar = "skunkLineless"
+
 		self.queue_random_avatars(avatars)
 
 		self.vars_regex = re.compile(r"\$\{(.+?)\}")

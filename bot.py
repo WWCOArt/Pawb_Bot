@@ -13,7 +13,7 @@ from aiohttp import web
 import sys
 import imaplib
 
-VERSION_NUMBER = "0.4.1"
+VERSION_NUMBER = "0.4.2"
 
 DIANE_TEST_MODE = False
 
@@ -178,6 +178,7 @@ class Bot(commands.Bot):
 			web.post("/headpats", self.http_headpats),
 			web.post("/hug", self.http_hug),
 			web.post("/queue_next", self.http_queue_next),
+			web.post("/returnAvatar", self.http_return_avatar),
 		])
 
 		self.http_runner = web.AppRunner(self.http_server)
@@ -416,6 +417,8 @@ class Bot(commands.Bot):
 			if len(input_split) > 1:
 				if input_split[1] == "random":
 					await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.RANDOM_AVATAR, "", 2.0, "")) # type: ignore
+				elif input_split[1] == "return" or input_split[1] == "revert" or input_split[1] == "undo":
+					await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot_data.last_natural_avatar, 2.0, "")) # type: ignore
 				else:
 					await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, input_split[1], 2.0, "")) # type: ignore
 			else:
@@ -597,6 +600,10 @@ class Bot(commands.Bot):
 		await self.process_input("next")
 		return web.Response()
 
+	async def http_return_avatar(self, request: web.Request) -> web.Response:
+		await self.get_component("CommandsChat").queue_action(AvatarAction(ActionType.AVATAR_CHANGE, self.bot_data.last_natural_avatar, 2.0, "")) # type: ignore
+		return web.Response()
+
 ########################################################################################################################
 
 class CommandsChat(commands.Component):
@@ -656,28 +663,39 @@ class CommandsChat(commands.Component):
 
 				self.bot.set_current_avatar(self.bot_data, new_avatar)
 				await self.update_redeem_availability(previous_avatar, new_avatar)
+				if action.user_display_name != "" and action.user_display_name != "default":
+					self.bot_data.last_natural_avatar = avatar_name
 		elif action.type == ActionType.RANDOM_AVATAR:
 			with open(self.bot.CURRENT_SONG_PATH) as song_file:
 				current_song = song_file.read().strip()
 
 			previous_avatar = self.bot_data.current_avatar
 			new_avatar = {}
+			new_avatar_key_name = str()
 			song_override = False
-			for avatar in self.bot.AVATARS.values():
-				this_song = avatar.get("song")
+			for avatar in self.bot.AVATARS.items():
+				this_song = avatar[1].get("song")
 				if this_song != None and this_song in current_song:
-					new_avatar = avatar
+					new_avatar = avatar[1]
+					new_avatar_key_name = avatar[0]
 					song_override = True
 					break
 
 			if not song_override:
 				new_avatar = self.bot_data.random_avatars.pop()
+				for av in self.bot.AVATARS.items():
+					if av[1]["veadotube_name"] == new_avatar["veadotube_name"]:
+						new_avatar_key_name = av[0]
+						break
+
 				if len(self.bot_data.random_avatars) == 0:
 					self.bot_data.queue_random_avatars(self.bot.AVATARS)
 
 			self.bot.set_current_avatar(self.bot_data, new_avatar["veadotube_name"])
 			await send_message(user, sender=self.bot.user, message=self.bot_data.replace_vars_in_string(f"Random avatar: {new_avatar["description"]}")) # type: ignore
 			await self.update_redeem_availability(previous_avatar, new_avatar["veadotube_name"])
+			if action.user_display_name != "" and action.user_display_name != "default":
+				self.bot_data.last_natural_avatar = new_avatar_key_name
 		elif action.type == ActionType.HEADPATS or action.type == ActionType.HUG:
 			is_hug = action.type == ActionType.HUG
 			subprocess.run(f'{self.bot.VEADOTUBE_PATH} -i 0 nodes stateEvents username set "{action.user_display_name}"')
@@ -722,7 +740,6 @@ class CommandsChat(commands.Component):
 
 	async def queue_action(self, action: AvatarAction):
 		self.bot_data.action_queue.append(action)
-		#print(f"Adding to queue ({self.bot_data.get_action_queue_string()})")
 		if len(self.bot_data.action_queue) == 1:
 			await self.advance_action_queue()
 
